@@ -8,11 +8,12 @@ from tqdm import tqdm
 class Device:
     num = 0  # type: int
     def __init__(self, name: str=None, startup_time: int=0, plan: Route=None,
-                 apps: List[Application]=None, ds_pri: int=1):
+                 apps: List[Application]=None, ds_pri: int=1, d_angle):
         if name is None:
             Device.num += 1
             self._name = "d" + str(Device.num)
         else:
+            Device.num += 1
             self._name = name
         self._startup_time = startup_time
         if plan is None:
@@ -25,6 +26,7 @@ class Device:
             self._apps = []   # type: List[Application]
         else:
             self._apps = apps
+    d_angle = []
     ds_pri = 0
 
     @property

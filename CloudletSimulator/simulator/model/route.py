@@ -1,9 +1,9 @@
-from simulator.model.point import Point, adjacency
+from simulator.model.point import Point, adjacency, Point3D
 from typing import List, Dict
 import random
 
 
-Route = List[Point]
+Route = List[Point3D]
 
 
 def create_route(start: Point, goal: Point) -> Route:
