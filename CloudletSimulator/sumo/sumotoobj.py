@@ -1,11 +1,11 @@
 import csv
 
-from simulator.model.cloudlet import Cloudlet, create_all_time_cloudlets
-from simulator.model.device import Device
-from simulator.model.point import Point3D
-from simulator.utility.point import route
-from simulator.model.application import Application
-from simulator.utility.data import input_data_to_file
+from CloudletSimulator.simulator.model.cloudlet import Cloudlet, create_all_time_cloudlets
+from CloudletSimulator.simulator.model.device import Device
+from CloudletSimulator.simulator.model.point import Point3D
+from CloudletSimulator.simulator.utility.point import route
+from CloudletSimulator.simulator.model.application import Application
+from CloudletSimulator.simulator.utility.data import input_data_to_file
 from typing import List
 import random
 

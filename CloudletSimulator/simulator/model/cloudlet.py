@@ -1,6 +1,6 @@
-from simulator.model.device import Device, Devices
-from simulator.model.application import Application
-from simulator.model.point import Point, Point3D, point3d_to_point
+from CloudletSimulator.simulator.model.device import Device, Devices
+from CloudletSimulator.simulator.model.application import Application
+from CloudletSimulator.simulator.model.point import Point, Point3D, point3d_to_point
 from typing import List
 
 

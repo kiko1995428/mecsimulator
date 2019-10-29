@@ -6,7 +6,7 @@ Last-Modified   : 2017/07/12
 Version         : 1.0.1
 Description     : Pointに関する有用な関数などを定義している（適当
 """
-from simulator.oldmodels import Point
+from CloudletSimulator.simulator.oldmodels import Point
 from typing import List
 import math
 import random

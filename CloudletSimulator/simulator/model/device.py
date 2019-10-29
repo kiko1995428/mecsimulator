@@ -1,6 +1,6 @@
-from simulator.model.application import Application
-from simulator.model.route import Route, create_route
-from simulator.model.point import Point, random_two_point
+from CloudletSimulator.simulator.model.application import Application
+from CloudletSimulator.simulator.model.route import Route, create_route
+from CloudletSimulator.simulator.model.point import Point, random_two_point
 from typing import List
 from tqdm import tqdm
 
@@ -8,7 +8,7 @@ from tqdm import tqdm
 class Device:
     num = 0  # type: int
     def __init__(self, name: str=None, startup_time: int=0, plan: Route=None,
-                 apps: List[Application]=None, ds_pri: int=1, d_angle):
+                 apps: List[Application]=None, ds_pri: int=1):
         if name is None:
             Device.num += 1
             self._name = "d" + str(Device.num)

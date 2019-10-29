@@ -7,10 +7,10 @@ Last-Modified   : 2017/07/17
 Version         : 1.0.0
 Description     : 入出力データに関する有用な関数などを定義している（適当
 """
-from simulator.oldmodels import AllTimeCloudlets, Devices, AllocationPlan
-from simulator.model.device import Device
-from simulator.utility.search import search
-import simulator.setting
+from CloudletSimulator.simulator.oldmodels import AllTimeCloudlets, Devices, AllocationPlan
+from CloudletSimulator.simulator.model.device import Device
+from CloudletSimulator.simulator.utility.search import search
+import CloudletSimulator.simulator.setting
 from typing import Dict, List
 import csv
 import pickle

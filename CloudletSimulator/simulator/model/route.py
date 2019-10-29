@@ -1,4 +1,4 @@
-from simulator.model.point import Point, adjacency, Point3D
+from CloudletSimulator.simulator.model.point import Point, adjacency, Point3D
 from typing import List, Dict
 import random
 
