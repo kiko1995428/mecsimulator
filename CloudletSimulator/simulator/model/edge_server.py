@@ -1,13 +1,12 @@
-#from simulator.model.device import Device, Devices
-#from simulator.model.application import Application
-#from simulator.model.point import Point, Point3D, point3d_to_point
-#from typing import List
+from simulator.model.device import Device, Devices
+from simulator.model.application import Application
+from simulator.model.point import Point, Point3D, point3d_to_point
+from typing import List
 import pandas as pd
-import numpy as np
 import math
+import numpy as np
 from math import radians, cos, sin, asin, sqrt, atan2
 
-memo = 0
 
 class MEC_server:
     num = 0
@@ -51,7 +50,7 @@ class MEC_server:
     @name.setter
     def name(self, value) -> None:
         self._name = value
-
+    """
     @property
     def point3d(self) -> Point3D:
         return self._point
@@ -59,7 +58,7 @@ class MEC_server:
     @property
     def point(self) -> Point:
         return point3d_to_point(self._point)
-    """
+
     @property
     def resource(self) -> int:
         return self._resource
@@ -67,7 +66,7 @@ class MEC_server:
     @resource.setter
     def resource(self, value: int) -> None:
         self._resource = value
-    """
+
     @property
     def devices(self) -> Devices:
         new_devices = []    # type: Devices
@@ -92,7 +91,7 @@ class MEC_server:
         for app in self._apps:
             ret.append(app)
         return ret
-    """
+
 #---
     #ゲッター（id）
     @property
@@ -118,7 +117,7 @@ class MEC_server:
     def range(self) -> float:
         return self._range 
 #---
-    """
+
     def can_append_device(self, device: Device, app_check: bool=False) -> bool:
         
         #指定されたデバイスが追加可能か判定するメソッド
@@ -162,28 +161,27 @@ class MEC_server:
 
     def remove_device(self, device: Device) -> None:
         del self._devices[self._devices.index(device)]
-    """
 
 
 
-"""
-Cloudlet集合の定義
-型アノテーション用だが現状意味はない(2017/06/14)
-"""
-"""
-CloudletRowItems = List[Cloudlet]
-NearCloudlets = List[Cloudlet]
+
+
+#Cloudlet集合の定義
+#型アノテーション用だが現状意味はない(2017/06/14)
+
+CloudletRowItems = List[MEC_server]
+NearCloudlets = List[MEC_server]
 Cloudlets = List[CloudletRowItems]
-AllTimeCloudlets = List[Cloudlets]
+AllTimeCloudlets = List[MEC_server]
 
 
 def create_all_time_cloudlets(t_len: int, x_len: int, y_len: int, r: int=5) -> AllTimeCloudlets:
   
-   # 時間軸、横軸、縦軸の最大長を指定してCloudletの三次元リストを生成する。
-   # :param t_len: 時間軸の最大長
+   #時間軸、横軸、縦軸の最大長を指定してCloudletの三次元リストを生成する。
+    #:param t_len: 時間軸の最大長
     #:param x_len: 横軸の最大長
-   # :param y_len: 縦軸の最大長
-   # :param r: 各クラウドレットの所有リソース
+    #:param y_len: 縦軸の最大長
+    #:param r: 各クラウドレットの所有リソース
    # :return:
   
     all_time_cloudlets = [[[Cloudlet(r, Point3D(i, j, k)) for i in range(x_len)]
@@ -203,13 +201,12 @@ def is_valid_point(cloudlets: Cloudlets, p: Point) -> bool:
 def check_allocate(cloudlets: AllTimeCloudlets, devices: Devices) -> bool:
   
     #正常な割り当てが成功しているかを検査する
-    #:param cloudlets:
+   # :param cloudlets:
     #:param devices:
-    #:return:
+   # :return:
    
     # Todo: 未実装
     return True
-"""
 
 #２点の緯度経度から距離（メートル）を返すメソッド
 def distance_calc(lat1, lon1, lat2, lon2):
