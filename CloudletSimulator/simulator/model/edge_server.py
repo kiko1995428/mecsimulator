@@ -1,11 +1,10 @@
-from simulator.model.device import Device, Devices
-from simulator.model.application import Application
-from simulator.model.point import Point, Point3D, point3d_to_point
+from CloudletSimulator.simulator.model.device import Device, Devices
+from CloudletSimulator.simulator.model.application import Application
+from CloudletSimulator.simulator.model.point import Point, Point3D, point3d_to_point
 from typing import List
-import pandas as pd
 import math
-import numpy as np
 from math import radians, cos, sin, asin, sqrt, atan2
+
 
 
 class MEC_server:
@@ -224,46 +223,19 @@ def distance_calc(lat1, lon1, lat2, lon2):
     return radius * ang #meter
 
 #基地局のカバー範囲内の割り振られていないデバイスを探すメソッド
-def cover_range_serch(device_flag, device_lon, device_lat, lon, lat, cover_range):
+def cover_range_serch(device_flag, device_lon, device_lat, lon, lat, cover_range, id):
+    memo = 0
     if device_flag == False:
         distance = distance_calc(device_lat, device_lon, lat, lon)
         if distance <= cover_range:
             print("found!!!!!")
             print("distance:", distance, "m")
             device_flag = True
-            return device_flag
+            memo = id
+            return device_flag, memo
         else:
-            return device_flag
+            return device_flag, memo
     else:
-        return device_flag
+        return device_flag, memo
 
-#test用
-if __name__ == "__main__":
-    #CSV読み込み
-    df = pd.read_csv("/Users/sugimurayuuki/Desktop/CloudletSimulator/inputdata/kddi_okayama_city.csv", dtype={'lon':'float','lat':'float'})
-    #基地局の種類を設定
-    server_type = "LTE"
-    #サーバの初期リソース量
-    resource = 1000
-    #基地局のカバー範囲を設定(メートル)
-    cover_range = 500
-    #CSVの行数を取得（基地局の数）
-    n = len(df)
-    print("Number of MEC server:", n)
-    #基地局の数のオブジェクト用リストを作成
-    mec = [MEC_server(0,00, " ", 00.00, 00.00, 0)] * n
 
-    #テスト用デバイスデータ
-    device_flag = False
-    device_lon = 133.913004
-    device_lat = 34.660882
-
-    #オブジェクト作成
-    for index, series in df.iterrows():
-        mec[index] = MEC_server(resource,index+1, server_type, series["lon"], series["lat"], cover_range) #０からカウントのため、1を＋
-        print("ID:", mec[index].name, ",", "type:", mec[index].server_type, ",", "resource:", mec[index].resource)
-        print("lat:", mec[index].lat, ",", "lon:", mec[index].lon)
-        print("range:", mec[index].range,"m")
-        #ここで基地局のカバー範囲内にあるか判定する。
-        device_flag = cover_range_serch(device_flag, device_lon, device_lat, mec[index].lon, mec[index].lat, cover_range)
-        print("**************")
