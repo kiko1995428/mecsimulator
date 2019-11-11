@@ -223,19 +223,37 @@ def distance_calc(lat1, lon1, lat2, lon2):
     return radius * ang #meter
 
 #基地局のカバー範囲内の割り振られていないデバイスを探すメソッド
-def cover_range_serch(device_flag, device_lon, device_lat, lon, lat, cover_range, id):
+def cover_range_search(device_flag, device_lon, device_lat, lon, lat, cover_range, id):
     memo = 0
     if device_flag == False:
         distance = distance_calc(device_lat, device_lon, lat, lon)
         if distance <= cover_range:
-            print("found!!!!!")
+            #print("found!!!!!")
+            #print("distance:", distance, "m")
+            #device_flag = True
+            memo = id
+           # return device_flag, memo
+            return memo
+        else:
+            #return device_flag, memo
+            return memo
+    else:
+        #return device_flag, memo
+        return memo
+#device_flagあり
+def cover_range_search2(device_flag, device_lon, device_lat, lon, lat, cover_range, id):
+    memo = 0
+    if device_flag == False:
+        distance = distance_calc(device_lat, device_lon, lat, lon)
+        if distance <= cover_range:
+            #print("found!!!!!")
             print("distance:", distance, "m")
             device_flag = True
             memo = id
-            return device_flag, memo
+            return device_flag,memo
         else:
-            return device_flag, memo
+            return device_flag,memo
     else:
-        return device_flag, memo
+        return device_flag,memo
 
 
