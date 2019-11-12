@@ -4,7 +4,7 @@ from CloudletSimulator.simulator.model.edge_server import MEC_server, cover_rang
 import pandas as pd
 import pickle
 #CSV読み込み
-df = pd.read_csv("kddi_okayama_city.csv", dtype={'lon':'float','lat':'float'})
+df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv", dtype={'lon':'float','lat':'float'})
 #基地局の種類を設定
 server_type = "LTE"
 #サーバの初期リソース量
