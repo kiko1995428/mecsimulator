@@ -32,8 +32,6 @@ devices = pickle.load(f)
 #デバイスの総数
 num = len(devices)
 print(num)
-for i in range(num):
-    devices[i].apps = ""
 for i in range(num-1):
     device_lon = float(devices[i].plan[1].x)
     device_lat = float(devices[i].plan[1].y)
