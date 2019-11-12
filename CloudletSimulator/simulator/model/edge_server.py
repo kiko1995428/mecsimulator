@@ -41,7 +41,7 @@ class MEC_server:
         self._lat = lat
         self._range = range
         #----
-    """
+
     @property
     def name(self) -> str:
         return self._name
@@ -49,7 +49,7 @@ class MEC_server:
     @name.setter
     def name(self, value) -> None:
         self._name = value
-    """
+
     @property
     def point3d(self) -> Point3D:
         return self._point
@@ -223,23 +223,20 @@ def distance_calc(lat1, lon1, lat2, lon2):
     return radius * ang #meter
 
 #基地局のカバー範囲内の割り振られていないデバイスを探すメソッド
-def cover_range_search(device_flag, device_lon, device_lat, lon, lat, cover_range, id):
+#リソース量はここで調整する
+def cover_range_search(device_flag, device_lon, device_lat, lon, lat, cover_range, id, MEC_resource, app_resource):
     memo = 0
-    if device_flag == False:
+    if (device_flag==False) or (MEC_resource>0) or ((MEC_resource-app_resource)>=0):
         distance = distance_calc(device_lat, device_lon, lat, lon)
         if distance <= cover_range:
-            #print("found!!!!!")
-            #print("distance:", distance, "m")
-            #device_flag = True
             memo = id
-           # return device_flag, memo
-            return memo
+            MEC_resource = MEC_resource - app_resource
+            return memo, MEC_resource
         else:
-            #return device_flag, memo
-            return memo
+            return memo, MEC_resource
     else:
-        #return device_flag, memo
-        return memo
+        return memo, MEC_resource
+
 #device_flagあり
 def cover_range_search2(device_flag, device_lon, device_lat, lon, lat, cover_range, id):
     memo = 0
@@ -255,5 +252,11 @@ def cover_range_search2(device_flag, device_lon, device_lat, lon, lat, cover_ran
             return device_flag,memo
     else:
         return device_flag,memo
+
+#MECサーバに割り振れたデバイスの数を返す
+def allocated_devices_count(original_resource, corrent_resource, devices_resource):
+    count = (original_resource - corrent_resource) / devices_resource
+    return count
+
 
 
