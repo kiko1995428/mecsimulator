@@ -1,7 +1,8 @@
 #edege_serverのテスト用プログラム
 #全体時間を考慮している
 
-from CloudletSimulator.simulator.model.edge_server import MEC_server, cover_range_search, allocated_devices_count
+from CloudletSimulator.simulator.model.edge_server import MEC_server, cover_range_search, allocated_devices_count, traffic_congestion
+from CloudletSimulator.simulator.model.device import Device
 import pandas as pd
 import pickle
 
@@ -34,43 +35,54 @@ devices = pickle.load(f)
 num = len(devices)
 print(num)
 
-system_end_time = 4736
+system_end_time = 4736 #SUMO全体の計算時間
 start_up_time =[0.0] * num
 end_time = [0.0] * num
-for i in range(num-1):
+for i in range(num):
     start_up_time[i] = float(devices[i].plan[0].time)
-    end_time[i] =float(devices[i].plan[-1].time)
+    devices[i].startup_time = float(devices[i].plan[0].time)
+    #print("1:",devices[i].startup_time)
+    #print("start:", devices[i].startup_time)
+    #print("shutdown:", devices[i].shutdown_time)
+    end_time[i] = float(devices[i].plan[-1].time)
+    #print("2:",devices[i].shutdown_time)
+    #devices[i].moving_time
+    #devices[i].shutdown_time = int(float(devices[i].plan[0].time)/1)
 
 app_resource = 1
 #ここに全体時間の動きを考慮したプログラムを書く
-for i in range(num-1): #デバイスの数
+#for i in range(num-1): #デバイスの数
+for i in range(100):
+    #print("device_ID:", i)
+    cnt = 0
+    plan_len = len(devices[i].plan)
     for j in range(system_end_time): #システムの秒数
-        if (start_up_time[i] >= j) and (j <= end_time[i]):
-            plan_len=len(devices[i].plan)
-            for n in range(plan_len): #予定表のインデックス
-                if float(devices[i].plan[n].time) == float(j):
-                    device_lon = float(devices[i].plan[n].x)
-                    device_lat = float(devices[i].plan[n].y)
-            #device_lon = float(devices[i].plan[].x)
-            #device_lat = float(devices[i].plan[].y)
-                    for index in range(data_length-200): #基地局数
-                        if (mec[index].resource - app_resource) >= 0:
-                            # ここで基地局のカバー範囲内にあるか判定する。
-                            memo, amount = cover_range_search(device_flag, device_lon, device_lat, mec[index].lon,
-                                                              mec[index].lat,
-                                                              cover_range, index + 1, mec[index].resource, app_resource)
-                            mec[index].resource = amount
-                        # memoが0以外の時は、MECのid（name）が返ってくる
-                        if memo > 0:
-                            tmp = memo
-                            memo = 0
-                            break
+        if cnt >= plan_len:
+            break
+        elif (start_up_time[i] >= j) and (j <= end_time[i]):
+            device_lon = float(devices[i].plan[cnt].x)
+            device_lat = float(devices[i].plan[cnt].y)
+            for index in range(data_length): #基地局数
+                if (mec[index].resource - app_resource) >= 0:
+                    # ここで基地局のカバー範囲内にあるか判定する。
+                    memo, amount = cover_range_search(device_flag, device_lon, device_lat, mec[index].lon,
+                                                      mec[index].lat, cover_range, index+1, mec[index].resource,
+                                                      app_resource)
+                    mec[index].resource = amount
+                # memoが0以外の時は、MECのid（name）が返ってくる
+                if memo > 0:
+                    tmp = memo
+                    memo = 0
+                    #print("車両ID：", i, ", 時刻：", j, ", allocated MEC ID is ", tmp)
+                    break
+            cnt = cnt + 1
+sum = 0
+for index in range(data_length): #基地局数
+    print("MEC_ID:", mec[index].name, ", traffic_congestion:", traffic_congestion(mec[index].lon, mec[index].lat, cover_range, num, devices, 400))
+    sum = sum + traffic_congestion(mec[index].lon, mec[index].lat, cover_range, num, devices, 400)
 
 
-sum=0
-#格MECサーバの割り当てたデバイス数を表示する処理
-for i in range(data_length):
-    cnt = allocated_devices_count(MEC_resource, mec[i].resource, app_resource)
-    #print("MEC_ID:", mec[i].name, ", resource:", mec[i].resource, ", allocated_devices_count(MEC):", int(cnt))
-    sum = sum + cnt
-print("number of allocated total devices:", int(sum))
+#必要なこと
+#リソースの増減の変化の表現
+#デバイス側にdevice_flagを実装
+
