@@ -4,6 +4,9 @@ from CloudletSimulator.simulator.model.point import Point, Point3D, point3d_to_p
 from typing import List
 import math
 from math import radians, cos, sin, asin, sqrt, atan2
+import geopy
+from geopy.distance import vincenty
+
 
 
 
@@ -257,6 +260,37 @@ def cover_range_search2(device_flag, device_lon, device_lat, lon, lat, cover_ran
 def allocated_devices_count(original_resource, corrent_resource, devices_resource):
     count = (original_resource - corrent_resource) / devices_resource
     return count
+
+#混雑度計算
+def traffic_congestion(lon, lat, cover_range, device_num, devices: Device, system_time):
+    cnt = 0
+    for i in range(device_num):
+        #system_timeとplanのインデックス番号の対応付ける処理を記述する必要あり
+        #引数のsystem_timeからインデックス番号と対応付けられている時間を求める
+        #なぜか起動時間と終了時間が反映されていない
+        startup = devices[i].startup_time
+        shutdown = devices[i].shutdown_time
+        #print(startup)
+        #print(shutdown)
+        position = (lat, lon)
+        if startup <= system_time and shutdown >=system_time:
+            #デバイスのplanのindex番号を計算
+            index = int(system_time) - int(startup)
+            if index < (shutdown - startup):
+                #vincety法
+                #--
+                #device_lat = float(devices[i].plan[index].y)
+                #device_lon = float(devices[i].plan[index].x)
+                #device_position = (device_lat, device_lon)
+                #distance = vincenty(position, device_position).miles * 1609.34
+                #ユーグリット距離
+                distance = distance_calc(float(devices[i].plan[index].y), float(devices[i].plan[index].x), lat, lon)
+                #カバー範囲内のデバイスをカウント
+                if distance <= cover_range:
+                    cnt = cnt + 1
+    return cnt
+
+
 
 
 
