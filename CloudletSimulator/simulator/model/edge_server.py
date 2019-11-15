@@ -7,14 +7,11 @@ from math import radians, cos, sin, asin, sqrt, atan2
 import geopy
 from geopy.distance import vincenty
 
-
-
-
 class MEC_server:
     num = 0
     cong_pri_app = [0, 0, 0]
     #def __init__(self, resource: int, point: Point3D, devices: Devices=None, name: str=None, server_type, lon, lat, range):
-    def __init__(self, resource: int, name, server_type, lon, lat, range):
+    def __init__(self, resource: int, name, server_type, lon, lat, range, system_end_time):
         """
         コンストラクタ
         :param r: 所有リソース
@@ -43,6 +40,8 @@ class MEC_server:
         self._lon = lon
         self._lat = lat
         self._range = range
+        self._system_end_time = system_end_time
+        self._having_devices = [[]*0]*system_end_time
         #----
 
     @property
@@ -94,79 +93,82 @@ class MEC_server:
             ret.append(app)
         return ret
 
-#---
-    #ゲッター（id）
-    @property
-    def name(self) -> int:
-        return self._name
-    #ゲッタ-(server_type)
+    # ゲッタ-(server_type)
     @property
     def server_type(self) -> str:
         return self._server_type
 
-    #ゲッター(lon)
+    # ゲッター(lon)
     @property
     def lon(self) -> float:
         return self._lon
-    
-    #ゲッター(lat)
+
+    # ゲッター(lat)
     @property
     def lat(self) -> float:
         return self._lat
 
-    #ゲッター(range)
+    # ゲッター(range)
     @property
     def range(self) -> float:
-        return self._range 
+        return self._range
+"""
+    @property
+    def having_devices(self):
+        return self._having_devices
+
+    @having_devices.setter
+    def append_having_devices(self, time, device: Device):
+        self._having_devices[time].append(device)
+"""
+
+
 #---
 
-    def can_append_device(self, device: Device, app_check: bool=False) -> bool:
-        
-        #指定されたデバイスが追加可能か判定するメソッド
-        #:param device: 追加するデバイス(Deviceクラス)
-        #:param app_check: アプリケーション名のチェックを行うか
-        #:return: 追加可能ならTrue，追加不可能ならFalse
-        
-        if app_check:
-            for app in device.apps:
-                if not self.is_operatable_application(app.name):
-                    return False
-        if self.empty_resource < device.use_resource:
-            return False
+def can_append_device(self, device: Device, app_check: bool=False) -> bool:
+
+    #指定されたデバイスが追加可能か判定するメソッド
+    #:param device: 追加するデバイス(Deviceクラス)
+    #:param app_check: アプリケーション名のチェックを行うか
+    #:return: 追加可能ならTrue，追加不可能ならFalse
+
+    if app_check:
+        for app in device.apps:
+            if not self.is_operatable_application(app.name):
+                return False
+    if self.empty_resource < device.use_resource:
+        return False
+    return True
+
+def is_operatable_application(self, app_name: str) -> bool:
+    clear
+
+    #指定されたアプリケーションが実行可能か返す
+    #:param app_name: アプリケーション名
+    #:return: true -> 実行可能, false -> 実行不可能
+
+    if app_name in [app.name for app in self.apps]:
         return True
-
-    def is_operatable_application(self, app_name: str) -> bool:
-        clear
-
-        #指定されたアプリケーションが実行可能か返す
-        #:param app_name: アプリケーション名
-        #:return: true -> 実行可能, false -> 実行不可能
-        
-        if app_name in [app.name for app in self.apps]:
-            return True
-        else:
-            return False
-
-    def append_device(self, new_device: Device) -> None:
-        
-        #指定されたデバイスをクラウドレットに追加する
-        #:param new_device:
-        #:return:
-        
-        if self.can_append_device(new_device):
-            self._devices.append(new_device)
-        else:
-            raise Exception("リソースが不足しています")
-
-    def apps_append(self, value: Application):
-        self._apps.append(value)
-
-    def remove_device(self, device: Device) -> None:
-        del self._devices[self._devices.index(device)]
+    else:
+        return False
 
 
+def append_device(self, new_device: Device) -> None:
 
+    #指定されたデバイスをクラウドレットに追加する
+    #:param new_device:
+    #:return:
 
+    if self.can_append_device(new_device):
+        self._devices.append(new_device)
+    else:
+        raise Exception("リソースが不足しています")
+
+def apps_append(self, value: Application):
+    self._apps.append(value)
+
+def remove_device(self, device: Device) -> None:
+    del self._devices[self._devices.index(device)]
 
 #Cloudlet集合の定義
 #型アノテーション用だが現状意味はない(2017/06/14)
@@ -178,14 +180,14 @@ AllTimeCloudlets = List[MEC_server]
 
 
 def create_all_time_cloudlets(t_len: int, x_len: int, y_len: int, r: int=5) -> AllTimeCloudlets:
-  
+
    #時間軸、横軸、縦軸の最大長を指定してCloudletの三次元リストを生成する。
     #:param t_len: 時間軸の最大長
     #:param x_len: 横軸の最大長
     #:param y_len: 縦軸の最大長
     #:param r: 各クラウドレットの所有リソース
    # :return:
-  
+
     all_time_cloudlets = [[[Cloudlet(r, Point3D(i, j, k)) for i in range(x_len)]
                            for j in range(y_len)]
                           for k in range(t_len)]     # type: AllTimeCloudlets
@@ -201,12 +203,12 @@ def is_valid_point(cloudlets: Cloudlets, p: Point) -> bool:
 
 
 def check_allocate(cloudlets: AllTimeCloudlets, devices: Devices) -> bool:
-  
+
     #正常な割り当てが成功しているかを検査する
    # :param cloudlets:
     #:param devices:
    # :return:
-   
+
     # Todo: 未実装
     return True
 
@@ -231,6 +233,22 @@ def cover_range_search(device_flag, device_lon, device_lat, lon, lat, cover_rang
     memo = 0
     if (device_flag==False) or (MEC_resource>0) or ((MEC_resource-app_resource)>=0):
         distance = distance_calc(device_lat, device_lon, lat, lon)
+        if distance <= cover_range:
+            memo = id
+            MEC_resource = MEC_resource - app_resource
+            return memo, MEC_resource, True
+        else:
+            return memo, MEC_resource, False
+    else:
+        return memo, MEC_resource, False
+
+#cover_range_searchの引数がオブジェクト版
+def test(device_flag, devices: Devices, device_index, plan_index, lon, lat, cover_range, id, MEC_resource,
+         app_resource):
+    memo = 0
+    if (device_flag == False) or (MEC_resource > 0) or ((MEC_resource - app_resource) >= 0):
+        distance = distance_calc(float(devices[device_index].plan[plan_index].y),
+                                 float(devices[device_index].plan[plan_index].x), lat, lon)
         if distance <= cover_range:
             memo = id
             MEC_resource = MEC_resource - app_resource
@@ -283,12 +301,26 @@ def traffic_congestion(lon, lat, cover_range, device_num, devices: Device, syste
                 #device_lon = float(devices[i].plan[index].x)
                 #device_position = (device_lat, device_lon)
                 #distance = vincenty(position, device_position).miles * 1609.34
+                #---
                 #ユーグリット距離
                 distance = distance_calc(float(devices[i].plan[index].y), float(devices[i].plan[index].x), lat, lon)
                 #カバー範囲内のデバイスをカウント
                 if distance <= cover_range:
                     cnt = cnt + 1
     return cnt
+
+#MECサーバが持っているデバイスを表示
+#mec.having_device[time]=[device,device,....]
+#@property
+#def having_device(self, time):
+#    return self._having_device[time]
+
+#@having_device.setter
+#def having_device(self, time, value: Device):
+#    self._having_device[time].append(value)
+
+
+
 
 
 
