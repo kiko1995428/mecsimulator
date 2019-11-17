@@ -1,7 +1,7 @@
 #edege_serverのテスト用プログラム
 #全体時間を考慮している
 
-from CloudletSimulator.simulator.model.edge_server import MEC_server, cover_range_search, allocated_devices_count, traffic_congestion
+from CloudletSimulator.simulator.model.edge_server import MEC_server, between_time
 from CloudletSimulator.simulator.model.device import Device
 import pandas as pd
 import pickle
@@ -71,12 +71,12 @@ same = None
 #ここに全体時間の動きを考慮したプログラムを書く
 #for i in range(num-1): #デバイスの数
 for i in range(100):
-    cnt = 0
+    cnt = 0 #デバイスの計画表にある稼働時間をカウントするための変数
     plan_len = len(devices[i].plan)
     for j in range(system_end_time): #システムの秒数
         if cnt >= plan_len:
             break
-        elif (devices[i].startup_time >= j and j <= devices[i].shutdown_time):
+        elif between_time(devices[i], j)==True :
             device_lon = float(devices[i].plan[cnt].x)
             device_lat = float(devices[i].plan[cnt].y)
             for index in range(data_length): #基地局数
@@ -87,13 +87,9 @@ for i in range(100):
                 #追加可能APを持っているか判定
                 if(mec[index].is_operatable_application(devices[i]._apps) == True):
                     #リソース量をチェック
-                    #if (mec[index].resource - app_resource) >= 0:
                     if mec[index].check_resource(app_resource)==True:
                         # ここで基地局のカバー範囲内にあるか判定する。
-                        memo, resource_amount, device_flag = cover_range_search(devices[i] , cnt, mec[index].lon, mec[index].lat,
-                                                                      cover_range, index+1, mec[index].resource,
-                                                                      app_resource)
-                        mec[index].resource = resource_amount
+                        memo,device_flag = mec[index].cover_range_search(devices[i], cnt, app_resource)
                         #ここで基地局に割り振られたデバイスのインスタンスを各MECのhaving_devicesリストに追加していく。
                         if (device_flag == True) and (same != i):
                             #ここをセッターからセットできるようにする。
@@ -112,11 +108,14 @@ for i in range(data_length):
     if len(mec[i]._having_devices[1]) != 0:
         print("MEC_ID:",i)
         print("len:", len(mec[i]._having_devices[1]), ", list:",mec[i]._having_devices[1])
+        
+for index in range(data_length): #基地局数
+    print(mec[index].allocated_devices_count(MEC_resource, app_resource))
 
 sum = 0
 for index in range(data_length): #基地局数
-    sum = sum + traffic_congestion(mec[index].lon, mec[index].lat, cover_range, num, devices, 400,app_resource)
-    if mec[index].congestion_judge(traffic_congestion(mec[index].lon, mec[index].lat, cover_range, num, devices, 400,app_resource)) == True:
-        print("MEC_ID:", mec[index].name, ", traffic_congestion:",traffic_congestion(mec[index].lon, mec[index].lat, cover_range, num, devices, 400,app_resource) )
+    sum = sum + mec[index].traffic_congestion(devices, 400, app_resource)
+    if mec[index].congestion_check(mec[index].traffic_congestion(devices, 400, app_resource)) == True:
+        print("MEC_ID:", mec[index].name, ", traffic_congestion:",mec[index].traffic_congestion(devices, 400, app_resource) )
 print(sum)
 """

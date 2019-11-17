@@ -11,7 +11,6 @@ from geopy.distance import vincenty
 class MEC_server:
     num = 0
     cong_pri_app = [0, 0, 0]
-
     # def __init__(self, resource: int, point: Point3D, devices: Devices=None, name: str=None, server_type, lon, lat, range):
     def __init__(self, resource: int, name, server_type, lon, lat, range, system_end_time):
         # def __init__(self, resource: int, name, server_type, lon, lat, range, system_end_time, devices: Devices = None):
@@ -97,40 +96,34 @@ class MEC_server:
             ret.append(app)
         return ret
 
-    # ゲッタ-(server_type)
     @property
     def server_type(self) -> str:
         return self._server_type
 
-    # ゲッター(lon)
     @property
     def lon(self) -> float:
         return self._lon
 
-    # ゲッター(lat)
     @property
     def lat(self) -> float:
         return self._lat
 
-    # ゲッター(range)
     @property
     def range(self) -> float:
         return self._range
 
-    # 混雑度の基準値
+    #混雑度の基準値
     @property
     def congestion_standard(self):
         return self._resource * 0.3
 
-    # 混雑しているのかの判定
-    def congestion_judge(self, request_resource):
-        if request_resource >= self.congestion_standard:
-            return True
-        else:
-            return False
-
     #def check_resource(self, device: Device) -> bool:
     def check_resource(self, app_resource):
+        """"
+        リソース残量をチェックする
+        :param app_resource: アプリケーションの使用リソース量
+        :return: true -> 実行可能, false -> 実行不可能
+        """
         #if self.resource - device.use_resource >= 0:
         if self.resource - app_resource >= 0:
             return True
@@ -138,19 +131,101 @@ class MEC_server:
             return False
 
     def is_operatable_application(self, app_name: str) -> bool:
-        # 指定されたアプリケーションが実行可能か返す
-        #:param app_name: アプリケーション名
-        #:return: true -> 実行可能, false -> 実行不可能
-        #if app_name in [app.name for app in self.apps]:
-        #if app_name == self.apps[0] or app_name == self.apps[1]:
+        """
+        指定されたアプリケーションが実行可能か返す
+        :param app_name: デバイスの持つアプリケーション名
+        :return: true -> 実行可能, false -> 実行不可能
+        """
         if (app_name in self.apps) == True:
             return True
         else:
             return False
 
-
     def apps_append(self, value: Application):
+        """
+        指定されたアプリケーションを追加する
+        :param value: 追加するアプリケーション
+        """
         self._apps.append(value)
+
+    def cover_range_search(self, device: Device, plan_index, app_resource):
+        """
+        MECのカバー範囲内のデバイスを探すメソッド
+        :param device: デバイス
+        :param plan_index: デバイスの計画表（plan）のリストのインデックス
+        :param app_resource: アプリケーションの使用リソース量
+        :return memo: 発見したデバイスのID, self.resource: MECの保有リソース量, boolean:発見できたかどうかの判定
+        """
+        memo = 0
+        if (self.resource > 0) or ((self.resource - app_resource) >= 0):
+            distance = distance_calc(float(device.plan[plan_index].y),
+                                     float(device.plan[plan_index].x), self.lat, self.lon)
+            if distance <= self.range:
+                memo = int(self.name)
+                self.resource = self.resource - app_resource
+                return memo, True
+            else:
+                return memo, False
+        else:
+            return memo, False
+
+    def traffic_congestion(self, devices: Device, system_time, app_resource):
+        """
+        MECのカバー範囲内の要求リソース量の総和を求める計算（混雑度）
+        :param device: デバイス
+        :param system_time: システムのある時間t
+        :param app_resource: アプリケーションの使用リソース量
+        :return ある時刻tのときのMECのカバー範囲内の要求リソース量の総和
+        """
+        cnt = 0
+        device_num = len(devices)
+        for i in range(device_num):
+            # system_timeとplanのインデックス番号の対応付ける処理を記述する必要あり
+            # 引数のsystem_timeからインデックス番号と対応付けられている時間を求める
+            # なぜか起動時間と終了時間が反映されていない
+            startup = devices[i].startup_time
+            shutdown = devices[i].shutdown_time
+            # print(startup)
+            # print(shutdown)
+            position = (self.lat, self.lon)
+            if startup <= system_time and shutdown >= system_time:
+                # デバイスのplanのindex番号を計算
+                index = int(system_time) - int(startup)
+                if index < (shutdown - startup):
+                    # vincety法
+                    # --
+                    # device_lat = float(devices[i].plan[index].y)
+                    # device_lon = float(devices[i].plan[index].x)
+                    # device_position = (device_lat, device_lon)
+                    # distance = vincenty(position, device_position).miles * 1609.34
+                    # ---
+                    # ユーグリット距離
+                    distance = distance_calc(float(devices[i].plan[index].y), float(devices[i].plan[index].x), self.lat, self.lon)
+                    # カバー範囲内のデバイスをカウント
+                    if distance <= self.range:
+                        cnt = cnt + 1
+        return cnt * app_resource
+
+    def congestion_check(self, request_resource):
+        """
+        混雑しているかのチェック
+        :param request_resource:要求リソース量
+        :return: true -> 実行可能, false -> 実行不可能
+        """
+        if request_resource >= self.congestion_standard:
+            return True
+        else:
+            return False
+
+    def allocated_devices_count(self, original_resource, devices_resource):
+        """
+        MECに割り当てれているデバイス数を計算するメソッド
+        :param original_resource: 初期設定されたMECのリソース量
+        :param devices_resource: アプリケーションの使用リソース量(デバイス)
+        :return MECに割り当てれているデバイス数
+        """
+        count = (original_resource - self.resource) / devices_resource
+        return count
 
 
 """
@@ -249,9 +324,15 @@ def check_allocate(cloudlets: AllTimeCloudlets, devices: Devices) -> bool:
     return True
 """
 
-
-# ２点の緯度経度から距離（メートル）を返すメソッド
 def distance_calc(lat1, lon1, lat2, lon2):
+    """
+    ２点の緯度経度から距離（メートル）を計算するメソッド
+    :param lat1 : １点目の　lat
+    :param lon1 : １点目の　lot
+    :param lat2 : ２点目の　lat
+    :param lot2 : ２点目の　lot
+    :return : 距離
+    """
     # return distance as meter if you want km distance, remove "* 1000"
     radius = 6371 * 1000
 
@@ -265,10 +346,23 @@ def distance_calc(lat1, lon1, lat2, lon2):
     ang = 2 * atan2(sqrt(val), sqrt(1 - val))
     return radius * ang  # meter
 
+def between_time(device:Device, current_time):
+    """
+    現在時刻tがデバイスの起動時間と終了時間内か判定するメソッド
+    :param device:　デバイス
+    :param current_time: 現在時刻t
+    :return : 判定結果
+    """
+    if(device.startup_time >= current_time and current_time <= device.shutdown_time):
+        return True
+    else:
+        return False
+
 
 # 基地局のカバー範囲内の割り振られていないデバイスを探すメソッド
 # リソース量はここで調整する
 # cover_range_searchの引数がオブジェクト版
+"""
 def cover_range_search(device: Device, plan_index, lon, lat, cover_range, id, MEC_resource,
                        app_resource):
     memo = 0
@@ -283,6 +377,7 @@ def cover_range_search(device: Device, plan_index, lon, lat, cover_range, id, ME
             return memo, MEC_resource, False
     else:
         return memo, MEC_resource, False
+"""
 
 
 # test用簡易版
@@ -315,7 +410,7 @@ def old_cover_range_search(device_flag, device_lon, device_lat, lon, lat, cover_
     else:
         return memo, MEC_resource, False
 
-
+"""
 # MECサーバに割り振れたデバイスの数を返す
 def allocated_devices_count(original_resource, corrent_resource, devices_resource):
     count = (original_resource - corrent_resource) / devices_resource
@@ -351,7 +446,7 @@ def traffic_congestion(lon, lat, cover_range, device_num, devices: Device, syste
                 if distance <= cover_range:
                     cnt = cnt + 1
     return cnt * request_resource
-
+"""
 # MECサーバが持っているデバイスを表示
 # mec.having_device[time]=[device,device,....]
 # @property
