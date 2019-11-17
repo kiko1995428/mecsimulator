@@ -5,9 +5,9 @@ from CloudletSimulator.simulator.model.edge_server import MEC_server, cover_rang
 from CloudletSimulator.simulator.model.device import Device
 import pandas as pd
 import pickle
-
-system_end_time = 4736 #SUMO全体の計算時間
-
+import random
+#SUMO全体の計算時間
+system_end_time = 4736
 #CSV読み込み
 df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv", dtype={'lon':'float','lat':'float'})
 #基地局の種類を設定
@@ -31,18 +31,40 @@ data_length = len(df)
 for index, series in df.iterrows():
     mec[index] = MEC_server(MEC_resource, index + 1, server_type, series["lon"], series["lat"],
                             cover_range, system_end_time)
+    """
+    mec[index].apps_append("AP1")
+    mec[index].apps_append("AP2")
+    mec[index].apps_append("AP3")
+
+    """
+    random_app = random.uniform(1, 3)
+    if random_app == 1:
+        mec[index].apps_append("AP1")
+        mec[index].apps_append("AP2")
+    elif random_app == 2:
+        mec[index].apps_append("AP1")
+        mec[index].apps_append("AP3")
+    else:
+        mec[index].apps_append("AP2")
+        mec[index].apps_append("AP3")
+
+
+
 #事前に作成しておいたバイナリデータからデバイスインスタンスを作成
 devices = pickle.load(f)
 #デバイスの総数
 num = len(devices)
 print(num)
 
-start_up_time =[0.0] * num
-end_time = [0.0] * num
 for i in range(num):
-    #start_up_time[i] = float(devices[i].plan[0].time)
     devices[i].startup_time = float(devices[i].plan[0].time)
-    #end_time[i] = float(devices[i].plan[-1].time)
+    random_app = random.uniform(1,3)
+    if random_app == 1:
+        devices[i].apps = "AP1"
+    elif random_app == 2:
+        devices[i].apps = "AP2"
+    else:
+        devices[i].apps = "AP3"
 
 app_resource = 1
 same = None
@@ -58,35 +80,43 @@ for i in range(100):
             device_lon = float(devices[i].plan[cnt].x)
             device_lat = float(devices[i].plan[cnt].y)
             for index in range(data_length): #基地局数
-                if (mec[index].resource - app_resource) >= 0:
-                    # ここで基地局のカバー範囲内にあるか判定する。
-                    memo, amount, judge = cover_range_search(device_flag, device_lon, device_lat, mec[index].lon,
-                                                      mec[index].lat, cover_range, index+1, mec[index].resource,
-                                                      app_resource)
-                    #memo, amount = test(device_flag, devices, i , cnt, mec[index].lon, mec[index].lat,
-                                        #cover_range, index+1, mec[index].resource, app_resource, j)
-                    mec[index].resource = amount
-                    #ここで基地局に割り振られたデバイスのインスタンスを各MECのhaving_devicesリストに追加していく。
-                    if (judge == True) and (same != i):
-                        #ここをセッターからセットできるようにする。
-                        mec[index]._having_devices[j].append(devices[i].name)
-                        same = i
+                #print("ID:", mec[index].name, ",", "type:", mec[index].server_type, ",", "resource:",
+                      #mec[index].resource)
+                #print("lat:", mec[index].lat, ",", "lon:", mec[index].lon)
+                #print("range:", mec[index].range, "m")
+                #追加可能APを持っているか判定
+                if(mec[index].is_operatable_application(devices[i]._apps) == True):
+                    #リソース量をチェック
+                    #if (mec[index].resource - app_resource) >= 0:
+                    if mec[index].check_resource(app_resource)==True:
+                        # ここで基地局のカバー範囲内にあるか判定する。
+                        memo, resource_amount, device_flag = cover_range_search(devices[i] , cnt, mec[index].lon, mec[index].lat,
+                                                                      cover_range, index+1, mec[index].resource,
+                                                                      app_resource)
+                        mec[index].resource = resource_amount
+                        #ここで基地局に割り振られたデバイスのインスタンスを各MECのhaving_devicesリストに追加していく。
+                        if (device_flag == True) and (same != i):
+                            #ここをセッターからセットできるようにする。
+                            mec[index]._having_devices[j].append(devices[i].name)
+                            same = i
 
-                # memoが0以外の時は、MECのid（name）が返ってくる
-                    if memo > 0:
-                        tmp = memo
-                        memo = 0
-                        #print("車両ID：", i, ", 時刻：", j, ", allocated MEC ID is ", tmp)
-                        break
+                    #memoが0以外の時は、MECのid（name）が返ってくる
+                        if memo > 0:
+                            print("車両ID：", i, ", 時刻：", j, ", allocated MEC ID is ", memo)
+                            memo = 0
+                            break
             cnt = cnt + 1
-
+"""
 #MECサーバの毎秒ごとに持つデバイスの数とデバイスの名前を表示する。
 for i in range(data_length):
     if len(mec[i]._having_devices[1]) != 0:
         print("MEC_ID:",i)
         print("len:", len(mec[i]._having_devices[1]), ", list:",mec[i]._having_devices[1])
+
 sum = 0
 for index in range(data_length): #基地局数
-    print("MEC_ID:", mec[index].name, ", traffic_congestion:", traffic_congestion(mec[index].lon, mec[index].lat, cover_range, num, devices, 400))
-    sum = sum + traffic_congestion(mec[index].lon, mec[index].lat, cover_range, num, devices, 400)
+    sum = sum + traffic_congestion(mec[index].lon, mec[index].lat, cover_range, num, devices, 400,app_resource)
+    if mec[index].congestion_judge(traffic_congestion(mec[index].lon, mec[index].lat, cover_range, num, devices, 400,app_resource)) == True:
+        print("MEC_ID:", mec[index].name, ", traffic_congestion:",traffic_congestion(mec[index].lon, mec[index].lat, cover_range, num, devices, 400,app_resource) )
 print(sum)
+"""
