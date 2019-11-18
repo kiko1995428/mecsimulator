@@ -3,7 +3,7 @@ import csv
 from CloudletSimulator.simulator.model.cloudlet import Cloudlet, create_all_time_cloudlets
 from CloudletSimulator.simulator.model.device import Device
 from CloudletSimulator.simulator.model.point import Point3D
-from CloudletSimulator.simulator.model.angle import Angle
+from CloudletSimulator.simulator.model.angle import Angle,Speed
 from CloudletSimulator.simulator.utility.point import route
 from CloudletSimulator.simulator.model.application import Application
 from CloudletSimulator.simulator.utility.data import input_data_to_file
@@ -24,12 +24,14 @@ with open('Kuruma.csv', newline='') as csvfile:
 		d_lon = row['vehicle_x']
 		d_lat = row['vehicle_y']
 		d_angle = Angle(d_time, row['vehicle_angle'])
+		d_speed = Speed(d_time, row['vehicle_speed'])
 		d_plan = Point3D(d_lon, d_lat, d_time)
 		dflag = 0
 
 		for d in devices:
 				#情報の追加
 			if d.name == d_name:
+				d.append_speed(d_speed)
 				d.append_plan(d_plan)
 				d.append_angle(d_angle)
 				dflag = 1
@@ -38,6 +40,7 @@ with open('Kuruma.csv', newline='') as csvfile:
 			d = Device(name=d_name)
 			d.startup_time=d_time
 			d.append_plan(d_plan)
+			d.append_speed(d_speed)
 			d.append_angle(d_angle)
 			d.use_resource = 1
 			devices.append(d)

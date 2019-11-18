@@ -1,7 +1,7 @@
 from CloudletSimulator.simulator.model.application import Application
 from CloudletSimulator.simulator.model.route import Route, create_route
 from CloudletSimulator.simulator.model.point import Point,Point3D, random_two_point
-from CloudletSimulator.simulator.model.angle import Angle
+from CloudletSimulator.simulator.model.angle import Angle,Speed
 from typing import List
 from tqdm import tqdm
 
@@ -9,7 +9,7 @@ from tqdm import tqdm
 class Device:
     num = 0  # type: int
     def __init__(self, name: str=None, startup_time: int=0, plan: Route=None,
-                 apps: List[Application]=None, angle: Angle=None):
+                 apps: List[Application]=None, angle: List[Angle]=None, speed: List[Speed]=None):
         if name is None:
             Device.num += 1
             self._name = "d" + str(Device.num)
@@ -31,6 +31,10 @@ class Device:
             self._angle = []
         else:
             self._angle = angle
+        if speed is None:
+            self._speed = []
+        else:
+            self._speed = speed
 
     @property
     def name(self) -> str:
@@ -63,6 +67,14 @@ class Device:
     @property
     def angle(self) -> Angle:
         return self._angle.copy()
+
+    @property
+    def speed(self) -> Speed:
+        return self._speed.copy()
+
+    @angle.setter
+    def speed(self, value: Speed) -> None:
+        self._speed = value
 
     @angle.setter
     def angle(self, value: Angle) -> None:
@@ -112,7 +124,8 @@ class Device:
 
     def append_angle(self, value:Angle) -> None:
         self._angle.append(value)
-
+    def append_speed(self, value:Speed) -> None:
+        self._speed.append(value)
     def append_app(self, app: Application) -> None:
         self._apps.append(app)
 
