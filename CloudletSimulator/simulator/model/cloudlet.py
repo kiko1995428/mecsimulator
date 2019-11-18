@@ -3,7 +3,6 @@ from CloudletSimulator.simulator.model.application import Application
 from CloudletSimulator.simulator.model.point import Point, Point3D, point3d_to_point
 from typing import List
 
-
 class Cloudlet:
     num = 0
     cong_pri_app = [0, 0, 0]

@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 class Device:
     num = 0  # type: int
-    def __init__(self, name: str=None, startup_time: int=0, plan: Route=None,
+    def __init__(self, name: str=None, startup_time: int=0, plan: Route=None, use_resouse: int=1,
                  apps: List[Application]=None, angle: List[Angle]=None, speed: List[Speed]=None):
         if name is None:
             Device.num += 1
@@ -17,6 +17,7 @@ class Device:
             Device.num += 1
             self._name = name
         self._startup_time = startup_time
+        self._use_resouse = use_resouse
         if plan is None:
             self._plan = []
             self._allocation_plan = []
@@ -98,11 +99,14 @@ class Device:
 
     @property
     def use_resource(self) -> int:
+        return self._use_resouse
+        """
         res = 0
+        
         for app in self._apps:
             res += app.use_resource
         return res
-
+"""
     @use_resource.setter
     def use_resource(self, value: int) -> None:
         """
