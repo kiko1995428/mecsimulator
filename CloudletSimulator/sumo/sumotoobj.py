@@ -39,6 +39,7 @@ with open('Kuruma.csv', newline='') as csvfile:
 			d.startup_time=d_time
 			d.append_plan(d_plan)
 			d.append_angle(d_angle)
+			d.use_resource = 1
 			devices.append(d)
 			num += 1
 	f = open('device.binaryfile', 'wb')
