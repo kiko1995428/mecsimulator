@@ -2,6 +2,7 @@
 #全体時間を考慮している
 
 from CloudletSimulator.simulator.model.edge_server import MEC_server, check_between_time
+from CloudletSimulator.simulator.model.angle import Mec_name
 from CloudletSimulator.simulator.model.device import Device
 import pandas as pd
 import pickle
@@ -51,7 +52,8 @@ for index, series in df.iterrows():
 
 
 #事前に作成しておいたバイナリデータからデバイスインスタンスを作成
-devices = pickle.load(f)
+devices = [] #type: List[Device]
+devices = pickle.load(f) #type: List[Device]
 #デバイスの総数
 num = len(devices)
 print(num)
@@ -67,7 +69,6 @@ for i in range(num):
     else:
         devices[i].apps = "AP3"
     """
-
 #app_resource = 1
 same = None
 #ここに全体時間の動きを考慮したプログラムを書く
@@ -94,6 +95,8 @@ for i in range(100):
                         if (device_flag == True) and (same != i):
                             #ここをセッターからセットできるようにする。
                             mec[index]._having_devices[j].append(devices[i].name)
+                            t = devices[i].plan[cnt].time
+                            devices[i].append_mec(Mec_name(t, mec[index].name))
                             same = i
 
                     #memoが0以外の時は、MECのid（name）が返ってくる

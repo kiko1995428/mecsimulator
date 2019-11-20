@@ -1,7 +1,7 @@
 from CloudletSimulator.simulator.model.application import Application
 from CloudletSimulator.simulator.model.route import Route, create_route
 from CloudletSimulator.simulator.model.point import Point,Point3D, random_two_point
-from CloudletSimulator.simulator.model.angle import Angle,Speed
+from CloudletSimulator.simulator.model.angle import Angle,Speed,Mec_name
 from typing import List
 from tqdm import tqdm
 
@@ -9,7 +9,7 @@ from tqdm import tqdm
 class Device:
     num = 0  # type: int
     def __init__(self, name: str=None, startup_time: int=0, resource: int=0,plan: Route=None,
-                 apps: List[Application]=None, angle: List[Angle]=None, speed: List[Speed]=None):
+                 apps: List[Application]=None, angle: List[Angle]=None, speed: List[Speed]=None, mec_name: List[Mec_name]=None):
         if name is None:
             Device.num += 1
             self._name = "d" + str(Device.num)
@@ -17,7 +17,10 @@ class Device:
             Device.num += 1
             self._name = name
         self._startup_time = startup_time
-        self._resource = resource
+        if resource is None:
+            self._resource = 1
+        else:
+            self._resource = resource
         if plan is None:
             self._plan = []
             self._allocation_plan = []
@@ -36,6 +39,10 @@ class Device:
             self._speed = []
         else:
             self._speed = speed
+        if mec_name is None:
+            self._mec_name = [] #type: List[Mec_name]
+        else:
+            self._mec_name = mec_name
 
     @property
     def name(self) -> str:
@@ -89,7 +96,14 @@ class Device:
     @plan.setter
     def plan(self, value: Route) -> None:
         self._plan = value
-        self._allocation_plan = [None for i in range(len(self._plan))]  # type: List[Point]
+
+    @property
+    def mec_name(self) -> List[Mec_name]:
+        return self._mec_name
+
+    @mec_name.setter
+    def mec_name(self, Value: List[Mec_name]) -> None:
+        self._mec_name = Value
 
     @property
     def apps(self) -> List[Application]:
@@ -135,6 +149,8 @@ class Device:
     def append_plan(self, value:Point3D) -> None:
         self._plan.append(value)
 
+    def append_mec(self, value: Mec_name) -> None:
+        self._mec_name.append(value)
     def append_angle(self, value:Angle) -> None:
         self._angle.append(value)
     def append_speed(self, value:Speed) -> None:
