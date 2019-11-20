@@ -12,8 +12,8 @@ class MEC_server:
     num = 0
     cong_pri_app = [0, 0, 0]
     # def __init__(self, resource: int, point: Point3D, devices: Devices=None, name: str=None, server_type, lon, lat, range):
-    def __init__(self, resource: int, name, server_type, lon, lat, range, system_end_time):
-        # def __init__(self, resource: int, name, server_type, lon, lat, range, system_end_time, devices: Devices = None):
+    def __init__(self, resource: int, name: int, server_type: str, lon: float, lat:float, range, system_end_time):
+        # def __init__(self, resource: int, name: int, server_type: str, lon, lat, range, system_end_time, devices: Devices = None):
         """
         コンストラクタ
         :param r: 所有リソース
@@ -36,6 +36,7 @@ class MEC_server:
         self._point = point
         """
         self._apps = []
+        self._test = 0
 
         # ----
         self._name = name
@@ -45,6 +46,7 @@ class MEC_server:
         self._range = range
         self._system_end_time = system_end_time
         self._having_devices = [[] * 0] * system_end_time
+        self._congestion_flag = [None] * system_end_time
         # ----
 
     @property
@@ -115,7 +117,7 @@ class MEC_server:
     #混雑度の基準値
     @property
     def congestion_standard(self):
-        return self._resource * 0.3
+        return self._resource * 0.1
 
     def check_resource(self, app_resource):
         """"
@@ -147,7 +149,83 @@ class MEC_server:
         """
         self._apps.append(value)
 
-    def cover_range_search(self, device: Device, plan_index):
+    def mode_adjustment(self, device: Device, plan_index, mode, old_id, time):
+        """
+        デバイスのリソースを調整するモードを返すメソッド
+        ・新規でデバイスを割り当てるaddモード
+        ・t-1秒に割り当てれたMECとt秒に割り当てるMECが同じ時に割り当て続けるkeepモード
+        ・t-1秒に割り当てれたMECとt秒に割り当てるMECが違う時のdecreaseモード
+        :param device: デバイス
+        :param plan_index: デバイスのplanのindex
+        :param mode:　リソース割り当てのモード
+        :param old_id: t-1秒に割り当てたMECの名前
+        :param time: 現在時刻t
+        :return: mode
+        """
+        if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
+            old_distance = distance_calc(float(device.plan[plan_index-1].y),
+                                     float(device.plan[plan_index-1].x), self.lat, self.lon)
+            current_distance = distance_calc(float(device.plan[plan_index].y),
+                                     float(device.plan[plan_index].x), self.lat, self.lon)
+            current_id, device_flag = self.cover_range_search_test(device, plan_index)
+
+            #ここのアルゴリズムが間違えてる
+            #本来減算してはいけないタイミング減算してる
+            if (device_flag == True and current_id == old_id) or (old_distance <= self.range and current_distance <= self.range):
+                mode = "keep"
+            elif device_flag == False and (check_add_device(device, time)==False):
+                #if self._test > 0:
+                mode = "decrease"
+                self.resource_adjustment(device, mode)
+                mode = "add"
+            else:
+                mode = "add"
+        return mode
+
+    def resource_adjustment(self, device:Device, mode):
+        """
+        MECのカバー範囲内のデバイスを探すメソッド
+        :param device: デバイス
+        :param plan_index: デバイスの計画表（plan）のリストのインデックス
+        :return memo: 発見したデバイスのID, self.resource: MECの保有リソース量, boolean:発見できたかどうかの判定
+        """
+        if mode == "add":
+            self.resource = self.resource - device.use_resource
+            self._test = self._test + 1
+
+        elif mode == "decrease":
+            self.resource = self.resource + device.use_resource
+            self._test = self._test - 1
+        else:
+            self.resource = self.resource
+
+    def cover_range_search(self, device: Device, plan_index, mode):
+        """
+        MECのカバー範囲内のデバイスを探すメソッド
+        :param device: デバイス
+        :param plan_index: デバイスの計画表（plan）のリストのインデックス
+        :return memo: 発見したデバイスのID, self.resource: MECの保有リソース量, boolean:発見できたかどうかの判定
+        """
+        memo = 0
+        if mode == "add":
+            if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
+                distance = distance_calc(float(device.plan[plan_index].y),
+                                         float(device.plan[plan_index].x), self.lat, self.lon)
+                #print(distance)
+                if distance <= self.range:
+                    memo = int(self.name)
+                    #print("main",memo, distance)
+                    #リソース割り当て
+                    self.resource_adjustment(device, mode)
+                    #self.resource = self.resource - device.use_resource
+                    return memo, True
+                else:
+                    return memo, False
+            else:
+                return memo, False
+        return memo, False
+
+    def cover_range_search_test(self, device: Device, plan_index):
         """
         MECのカバー範囲内のデバイスを探すメソッド
         :param device: デバイス
@@ -160,14 +238,14 @@ class MEC_server:
                                      float(device.plan[plan_index].x), self.lat, self.lon)
             if distance <= self.range:
                 memo = int(self.name)
-                self.resource = self.resource - device.use_resource
+                #print(memo, distance)
                 return memo, True
             else:
                 return memo, False
         else:
             return memo, False
 
-    def traffic_congestion(self, devices: Device, system_time):
+    def traffic_congestion(self, devices: Devices, system_time):
         """
         MECのカバー範囲内の要求リソース量の総和を求める計算（混雑度）
         :param device: デバイス
@@ -178,14 +256,11 @@ class MEC_server:
         device_num = len(devices)
         sum = 0
         for i in range(device_num):
-            # system_timeとplanのインデックス番号の対応付ける処理を記述する必要あり
-            # 引数のsystem_timeからインデックス番号と対応付けられている時間を求める
-            # なぜか起動時間と終了時間が反映されていない
             startup = devices[i].startup_time
             shutdown = devices[i].shutdown_time
             # print(startup)
             # print(shutdown)
-            position = (self.lat, self.lon)
+            #position = (self.lat, self.lon)
             if startup <= system_time and shutdown >= system_time:
                 # デバイスのplanのindex番号を計算
                 index = int(system_time) - int(startup)
@@ -216,6 +291,12 @@ class MEC_server:
         else:
             return False
 
+    def create_congestion_list(self, total_resource, current_time):
+        if total_resource >= self.congestion_standard:
+            self._congestion_flag[current_time] = True
+        else:
+            self._congestion_flag[current_time] = False
+
     def allocated_devices_count(self, original_resource, devices_resource):
         """
         MECに割り当てれているデバイス数を計算するメソッド
@@ -225,7 +306,6 @@ class MEC_server:
         """
         count = (original_resource - self.resource) / devices_resource
         return count
-
 
 """
     @property
@@ -352,10 +432,23 @@ def check_between_time(device:Device, current_time):
     :param current_time: 現在時刻t
     :return : 判定結果
     """
-    if(device.startup_time >= current_time and current_time <= device.shutdown_time):
+    if(device.startup_time <= current_time and current_time <= device.shutdown_time):
         return True
     else:
         return False
+
+def check_add_device(device:Device, time):
+    """
+    あるデバイスが新規の追加なのか他のMECから移動なのかを判定
+    :param device: デバイス
+    :param time: 現在時刻t
+    :return True: 新規の追加なら真, Falseなら他のMECからの移動なら偽
+    """
+    #新規の追加か移動なのかの判定が必要
+    if device.startup_time == time:
+        return True
+    else:
+        False
 
 
 # 基地局のカバー範囲内の割り振られていないデバイスを探すメソッド
@@ -408,6 +501,7 @@ def old_cover_range_search(device_flag, device_lon, device_lat, lon, lat, cover_
             return memo, MEC_resource, False
     else:
         return memo, MEC_resource, False
+
 
 """
 # MECサーバに割り振れたデバイスの数を返す
