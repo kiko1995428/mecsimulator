@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 class Device:
     num = 0  # type: int
-    def __init__(self, name: str=None, startup_time: int=0, plan: Route=None, use_resouse: int=1,
+    def __init__(self, name: str=None, startup_time: int=0, resource: int=0,plan: Route=None,
                  apps: List[Application]=None, angle: List[Angle]=None, speed: List[Speed]=None):
         if name is None:
             Device.num += 1
@@ -17,7 +17,7 @@ class Device:
             Device.num += 1
             self._name = name
         self._startup_time = startup_time
-        self._use_resouse = use_resouse
+        self._resource = resource
         if plan is None:
             self._plan = []
             self._allocation_plan = []
@@ -52,7 +52,12 @@ class Device:
     @startup_time.setter
     def startup_time(self, value: int) -> None:
         self._startup_time = value
-
+    @property
+    def use_resource(self) -> int:
+        return self._resource
+    @use_resource.setter
+    def use_resource(self, value) -> None:
+        self._resource = value
     @property
     def moving_time(self) -> int:
         return len(self._plan)
@@ -97,23 +102,26 @@ class Device:
     def apps(self, value: List[Application]):
         self._apps = value
 
+    """
     @property
     def use_resource(self) -> int:
-        return self._use_resouse
-        """
+        return self._resource
+
         res = 0
         
         for app in self._apps:
             res += app.use_resource
         return res
-"""
-    @use_resource.setter
+        
+    @resouce.setter
     def use_resource(self, value: int) -> None:
-        """
+        
         利用非推奨
         :param value: 
         :return: 
-        """
+        
+        self._use_resource = value
+
         if self.use_resource == value:
             pass
         elif self.use_resource < value:
@@ -122,6 +130,7 @@ class Device:
         else:
             app = Application(name="padding", use_resource=value)
             self.apps = [app]
+        """
 
     def append_plan(self, value:Point3D) -> None:
         self._plan.append(value)
