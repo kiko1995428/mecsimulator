@@ -95,6 +95,7 @@ for i in range(100):
                         if (device_flag == True) and (same != i):
                             #ここをセッターからセットできるようにする。
                             mec[index]._having_devices[j].append(devices[i].name)
+                            #deviceのmec_nameに現在の通信しているmecサーバを追加
                             t = devices[i].plan[cnt].time
                             devices[i].append_mec(Mec_name(t, mec[index].name))
                             same = i
