@@ -117,7 +117,7 @@ class MEC_server:
     #混雑度の基準値
     @property
     def congestion_standard(self):
-        return self._resource * 0.1
+        return self._resource * 0.3
 
     def check_resource(self, app_resource):
         """"
@@ -447,6 +447,18 @@ def check_add_device(device:Device, time):
     #新規の追加か移動なのかの判定が必要
     if device.startup_time == time:
         return True
+    else:
+        False
+
+def check_plan_index(current_plan_index, moving_time_length):
+    """
+    ある時刻のplan_indexが指しているindexがデバイスの稼働時間を超えているか判定するメソッド
+    :param current_plan_index: 今指しているplanのindex
+    :param moving_time_length: あるデバイスの稼働時間の長さ
+    :return True: 指しているindexが稼働時間を超えてなければ真, False: 稼働時間を超えているなら偽
+    """
+    if current_plan_index >= moving_time_length:
+        True
     else:
         False
 

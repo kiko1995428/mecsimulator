@@ -1,7 +1,7 @@
 # edege_serverのテスト用プログラム
 # 全体時間を考慮している
 
-from CloudletSimulator.simulator.model.edge_server import MEC_server, check_between_time
+from CloudletSimulator.simulator.model.edge_server import MEC_server, check_between_time, check_plan_index
 from CloudletSimulator.simulator.model.device import Device
 import pandas as pd
 import pickle
@@ -41,39 +41,41 @@ m = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/simulator/
 # 事前に作成しておいたバイナリデータからデバイスインスタンスを作成
 devices = pickle.load(f)
 #mec = pickle.load(m)
-# デバイスの総数
-num = len(devices)
+num = len(devices) # デバイスの総数
 print(num)
-for i in range(num):
-    devices[i].startup_time = float(devices[i].plan[0].time)
 
-same = None
-mode = "add"
-old_id = None
+moving_time = [0] * num
+plan_index = [0] * num # 各deviceのplanリストのindex用リスト
+for i in range(num):
+    devices[i].startup_time = float(devices[i].plan[0].time) # 各デバイスの起動時間を設定する
+    moving_time[i] = len(devices[i].plan) # 各デバイスのplanの長さ（稼働時間）をリストに格納する
+
+same = None # 割り当てに被りがないように直前に割り当てたMECのIDを保存する変数
+mode = "add" # リソースの割り当て状態、初期状態はadd
+old_id = None # t-1秒前のMECのIDを保存するための変数
 
 # ここに全体時間の動きを考慮したプログラムを書く
-# for i in range(num-1): #デバイスの数
-test = 0
-cnt = 0
+# システム時間
 for t in range(system_end_time):  # システムの秒数
-    plan_len = len(devices[i].plan)
-    print("【現在時刻:",t, "】")
-    if cnt >= plan_len:
-        continue
+    print("【現在時刻:", t, "】")
+    # デバイス
     for i in range(50):
-        plan_len = len(devices[i].plan)
-        cnt = 0
-        if check_between_time(devices[i], t) == True:
+        # 各デバイスのplanのindexが、デバイスの稼働時間を超えているか判定する。
+        # 超えていれば新しいデバイスの処理に移る。
+        if (check_plan_index(plan_index[i], moving_time[i]) == True) or (t > devices[i].shutdown_time):
+            continue
+        # 各デバイスのplanのindexが、デバイスの稼働時間内か判定する。
+        elif check_between_time(devices[i], t) == True:
+            # MECサーバ
             for index in range(data_length):
-                mode = mec[index].mode_adjustment(devices[i], cnt, mode, old_id, t)
-                #print(mode)
-                #if mec[index]._congestion_flag[t] == False:
+                mode = mec[index].mode_adjustment(devices[i], plan_index[t], mode, old_id, t)
+                # print(mode)
+                # if mec[index]._congestion_flag[t] == False:
                 if True:
-                    #リソース量をチェック
+                    # リソース量をチェック
                     if mec[index].check_resource(devices[i].use_resource) == True:
                             # ここで基地局のカバー範囲内にあるか判定する。
-                            #print(mode)
-                            memo, device_flag = mec[index].cover_range_search(devices[i], cnt, mode)
+                            memo, device_flag = mec[index].cover_range_search(devices[i], plan_index[t], mode)
                             # ここで基地局に割り振られたデバイスのインスタンスを各MECのhaving_devicesリストに追加していく。
                             if (device_flag == True) and (same != i):
                                 # ここをセッターからセットできるようにする。
@@ -90,7 +92,7 @@ for t in range(system_end_time):  # システムの秒数
                                 old_id = memo
                                 memo = 0
                                 break
-            cnt = cnt + 1
+        plan_index[i] = plan_index[i] + 1
 print()
 #for t in range(system_end_time):
     #for index in range(data_length):
