@@ -18,19 +18,19 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
     # data = len(mec)
     data = 100
     distance =[None] * data
-    device_lat = float(device.plan[plan_index].y)
-    device_lon = float(device.plan[plan_index].x)
-    device_position = (device_lat, device_lon)
+    #device_lat = float(device.plan[plan_index].y)
+    #device_lon = float(device.plan[plan_index].x)
+    #device_position = (device_lat, device_lon)
 
     # 最近傍法を使うために、各MECサーバとの距離を計算
     for m in range(data):
-        position = (mec[m].lat, mec[m].lon)
+        #position = (mec[m].lat, mec[m].lon)
         if  mec[m].check_resource(device.use_resource) == True:
-            distance[m] = vincenty(position, device_position).miles * 1609.34
+            distance[m] = distance_calc(float(device.plan[plan_index].y),
+                                        float(device.plan[plan_index].x), mec[m].lat, mec[m].lon)
+            #distance[m] = vincenty(position, device_position).miles * 1609.34
         else:
             distance[m] = None
-        # distance[m] = distance_calc(float(device.plan[plan_index].y),
-                                     #float(device.plan[plan_index].x), mec[m].lat, mec[m].lon)
     # 最も距離が近いMECサーバを選び、その配列のインデックスを取得する
     ans_id = distance.index(min(distance))
     if min(distance) <= cover_range:
