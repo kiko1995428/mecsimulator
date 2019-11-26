@@ -1,8 +1,9 @@
 # edege_serverのテスト用プログラム
 # 全体時間を考慮している
 
-from CloudletSimulator.simulator.model.edge_server import MEC_server, check_between_time
+from CloudletSimulator.simulator.model.edge_server import MEC_server
 from CloudletSimulator.simulator.model.device import Device
+from CloudletSimulator.simulator.allocation.new_congestion import all_traffic_congestion,traffic_congestion,create_congestion_list
 import pandas as pd
 import pickle
 import random
@@ -43,10 +44,11 @@ for i in range(num):
     devices[i].startup_time = float(devices[i].plan[0].time)
 same = None
 
+
 for t in range(system_end_time):
     print(t)
     for m in range(data_length):
-        mec[m].create_congestion_list(mec[m].traffic_congestion(devices, t), t)
+        create_congestion_list(mec[m], traffic_congestion(mec[m], devices, t), t)
 f = open('mec.binaryfile', 'wb')
 pickle.dump(mec, f)
 f.close
