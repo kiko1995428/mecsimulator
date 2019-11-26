@@ -6,7 +6,6 @@ from tqdm import tqdm
 from typing import List
 import random
 
-
 def nearest(kwards) -> AllocationPlan:
     """
     最近傍割り当て方式
@@ -40,3 +39,4 @@ def nearest(kwards) -> AllocationPlan:
                 # どこにも割当られなかった場合
                 allocation_plan[device.name][time] = Allocation(pos.x, pos.y, -1)
     return allocation_plan
+
