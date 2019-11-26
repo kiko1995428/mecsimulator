@@ -4,6 +4,11 @@ from geopy.distance import vincenty
 import math
 from math import radians, cos, sin, asin, sqrt, atan2
 
+
+# 混雑度の基準値
+def congestion_standard(mec: MEC_server):
+    return mec.resource * 0.3
+
 def all_traffic_congestion(mecs:MEC_servers, devices: Devices, system_time):
     data_length = len(mecs)
     for t in range (system_time):
@@ -42,7 +47,7 @@ def congestion_check(mec:MEC_server, total_resource):
     :param total_resource:要求リソース量
     :return: true -> 実行可能, false -> 実行不可能
     """
-    if total_resource >= mec.congestion_standard:
+    if total_resource >= congestion_standard(mec):
         return True
     else:
         return False
