@@ -1,18 +1,27 @@
 from CloudletSimulator.simulator.model.device import Device, Devices
 from CloudletSimulator.simulator.model.application import Application
 from CloudletSimulator.simulator.model.point import Point, Point3D, point3d_to_point
+from CloudletSimulator.simulator.model.angle import Mec_name
 from typing import List
 import math
 from math import radians, cos, sin, asin, sqrt, atan2
-import geopy
+import collections
+import numpy as np
 from geopy.distance import vincenty
-
+#from recordclass import recordclass
+#from Camelot import namedgroup
+from namedlist import namedlist, FACTORY
+import fabric
+#allocated_table = n('allocated_table', ('t', 'device_name'))
+#allocated_table_list = List[collections.namedtuple('allocated_table', ('t', 'device_name'))]
+#Allocated_device = List(namedlist('Allocated_device', [('device_name', [])]))
+#Allocated_device = List[Allocated_device]
 
 class MEC_server:
     num = 0
     cong_pri_app = [0, 0, 0]
     # def __init__(self, resource: int, point: Point3D, devices: Devices=None, name: str=None, server_type, lon, lat, range):
-    def __init__(self, resource: int, name: int, server_type: str, lon: float, lat:float, range, system_end_time):
+    def __init__(self, resource: int, name: int, server_type: str, lon: float, lat:float, range:float, system_end_time:int):
         # def __init__(self, resource: int, name: int, server_type: str, lon, lat, range, system_end_time, devices: Devices = None):
         """
         コンストラクタ
@@ -45,8 +54,19 @@ class MEC_server:
         self._lat = lat
         self._range = range
         self._system_end_time = system_end_time
-        self._having_devices = [[] * 0] * system_end_time
+        #self.allocated_device = [None]
+        #self._having_devices = [allocated_device]*system_end_time
+        #Allocated_device = namedlist('Allocated_device', ['time','device_name'])
+        #Allocated_device = namedlist('Allocated_device', [('device_name', [])])
+        #self._having_devices = [[namedlist('Allocated_device', [('device_name', [])])] * system_end_time]
+        #allocated_table_list = namedlist('allocated_table', 't, device_name')
+        #allocated_table_list namedlist('allocated_table', [('device_name', [])])
+        self._having_devices = [None] * system_end_time
+        self._having_devices_count = [0] * system_end_time
         self._congestion_flag = [None] * system_end_time
+        self._mode = "add"
+        self._cnt = 0
+        self._resouce_per_resouce =[self._resource] * system_end_time
         # ----
 
     @property
@@ -149,7 +169,13 @@ class MEC_server:
         """
         self._apps.append(value)
 
-    def mode_adjustment(self, device: Device, plan_index, mode, old_id, time):
+    def check_allocation(self):
+        if self._test == 1 or self._test==0:
+            True
+        else:
+            False
+
+    def mode_adjustment(self, device: Device, plan_index, time):
         """
         デバイスのリソースを調整するモードを返すメソッド
         ・新規でデバイスを割り当てるaddモード
@@ -167,20 +193,39 @@ class MEC_server:
                                      float(device.plan[plan_index-1].x), self.lat, self.lon)
             current_distance = distance_calc(float(device.plan[plan_index].y),
                                      float(device.plan[plan_index].x), self.lat, self.lon)
-            current_id, device_flag = self.cover_range_search_test(device, plan_index)
+            current_id, device_flag = self.custom_cover_range_search(device, plan_index)
 
             #ここのアルゴリズムが間違えてる
-            #本来減算してはいけないタイミング減算してる
-            if (device_flag == True and current_id == old_id) or (old_distance <= self.range and current_distance <= self.range):
-                mode = "keep"
-            elif device_flag == False and (check_add_device(device, time)==False):
-                #if self._test > 0:
-                mode = "decrease"
-                self.resource_adjustment(device, mode)
-                mode = "add"
+            #同じIDを割り当て続ける場合
+            if (device_flag == True and current_id == device.mec_name):
+            #if (old_distance <= self.range and current_distance <= self.range):
+                print("MEC", self.name, "KEEP",", plan_index[",device.name, "]:", plan_index)
+                print(device.plan[plan_index], current_distance)
+                self._mode = "keep"
+                #Mec_name = (time, self.name)
+                # MEC_nameの保存
+                #device.append_mec(Mec_name)
+                device.mec_name = self.name
+                self.append_having_device(time, device)
+
+            #elif ((device_flag == False) or (current_id != old_id)) and (check_add_device(device, time)==False):
+            #elif(((old_distance >= self.range or current_distance >= self.range))
+                  #or (current_id != old_id) and check_add_device(device, time)==False) and device_flag == True:
+            elif device_flag == True and current_id != device.mec_name and check_add_device(device, time) == False:
+                print(green("DECREASE"))
+                self._mode = "decrease"
+                self.resource_adjustment(device, self._mode)
+                self._mode = "add"
             else:
-                mode = "add"
-        return mode
+                self._mode = "add"
+
+           # elif (device_flag== True and check_add_device(device, time) == True):
+             #   self._mode = "add"
+            #    print(self.name, device.name, self._mode, time)
+            #else:
+                #self._mode = "add"
+        #else:
+            #self._mode == "lack"
 
     def resource_adjustment(self, device:Device, mode):
         """
@@ -191,15 +236,18 @@ class MEC_server:
         """
         if mode == "add":
             self.resource = self.resource - device.use_resource
+            device._mec_name = self.name
+            print("MEC", self._name, "に","デバイス", device.name ,"追加", self.resource)
             self._test = self._test + 1
-
         elif mode == "decrease":
             self.resource = self.resource + device.use_resource
+            print("デバイス移動")
             self._test = self._test - 1
         else:
             self.resource = self.resource
+            print("MEC", self._name, "に", "デバイス", device.name, "KEEP", self.resource)
 
-    def cover_range_search(self, device: Device, plan_index, mode):
+    def cover_range_search(self, device: Device, plan_index, time):
         """
         MECのカバー範囲内のデバイスを探すメソッド
         :param device: デバイス
@@ -207,25 +255,40 @@ class MEC_server:
         :return memo: 発見したデバイスのID, self.resource: MECの保有リソース量, boolean:発見できたかどうかの判定
         """
         memo = 0
-        if mode == "add":
-            if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
-                distance = distance_calc(float(device.plan[plan_index].y),
-                                         float(device.plan[plan_index].x), self.lat, self.lon)
-                #print(distance)
-                if distance <= self.range:
-                    memo = int(self.name)
-                    #print("main",memo, distance)
-                    #リソース割り当て
-                    self.resource_adjustment(device, mode)
-                    #self.resource = self.resource - device.use_resource
-                    return memo, True
+        #if mode == "add":
+        if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
+            distance = distance_calc(float(device.plan[plan_index].y),
+                                     float(device.plan[plan_index].x), self.lat, self.lon)
+            #print(self.name, device.name, distance)
+            if distance <= self.range:
+                memo = int(self.name)
+                #print("ADD")
+                #print("main",memo, distance)
+                #リソース割り当て
+                #self.resource_adjustment(device, mode)
+
+                if self._mode == "add":
+                    #self._having_devices[time] = device.name
+                    #rrMec_name = (time, self.name)
+                    #device.append_mec(Mec_name)
+                    #デバイスの追加
+                    self.append_having_device(time, device)
+                    device.mec_name = self.name
+                    # リソース割り当て
+                    self.resource_adjustment(device, self._mode)
+                #self.resource = self.resource - device.use_resource
+                #elif self._mode == "keep":
+                    #Mec_name = (time, self.name)
+                    #device.append_mec(Mec_name)
                 else:
-                    return memo, False
+                    self._cnt = self._cnt + 1
+                return memo, True
             else:
                 return memo, False
-        return memo, False
+        else:
+            return memo, False
 
-    def cover_range_search_test(self, device: Device, plan_index):
+    def custom_cover_range_search(self, device: Device, plan_index):
         """
         MECのカバー範囲内のデバイスを探すメソッド
         :param device: デバイス
@@ -244,6 +307,65 @@ class MEC_server:
                 return memo, False
         else:
             return memo, False
+
+    def nearest_allocation(self, nearest_range, device: Device, plan_index):
+        memo = 0
+        if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
+            distance = distance_calc(float(device.plan[plan_index].y),
+                                     float(device.plan[plan_index].x), self.lat, self.lon)
+            if distance <= nearest_range:
+                memo = int(self.name)
+                #print(memo, distance)
+                return memo, True
+            else:
+                return memo, False
+        else:
+            return memo, False
+
+    def custom_nearest_allocation(self, nearest_range, device: Device, plan_index, time):
+        memo = 0
+        #if mode == "add":
+        if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
+            distance = distance_calc(float(device.plan[plan_index].y),
+                                     float(device.plan[plan_index].x), self.lat, self.lon)
+            #print(self.name, device.name, distance)
+            if distance <= nearest_range:
+                memo = int(self.name)
+                if self._mode == "add":
+                    self.append_having_device(time, device)
+                    device.mec_name = self.name
+                    # リソース割り当て
+                    self.resource_adjustment(device, self._mode)
+                else:
+                    self._cnt = self._cnt + 1
+                return memo, True
+            else:
+                return memo, False
+        else:
+            return memo, False
+
+    def nearest_mode_adjustment(self, device: Device, plan_index, time, nearest_range):
+        if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
+            old_distance = distance_calc(float(device.plan[plan_index-1].y),
+                                     float(device.plan[plan_index-1].x), self.lat, self.lon)
+            current_distance = distance_calc(float(device.plan[plan_index].y),
+                                     float(device.plan[plan_index].x), self.lat, self.lon)
+            current_id, device_flag = self.custom_nearest_allocation(device, plan_index, nearest_range)
+
+            #ここのアルゴリズムが間違えてる
+            #同じIDを割り当て続ける場合
+            if (device_flag == True and current_id == device.mec_name):
+                print("MEC", self.name, "KEEP",", plan_index[",device.name, "]:", plan_index)
+                print(device.plan[plan_index], current_distance)
+                self._mode = "keep"
+                device.mec_name = self.name
+                self.append_having_device(time, device)
+                return True
+            else:
+                return False
+        else:
+            return False
+
 
     def traffic_congestion(self, devices: Devices, system_time):
         """
@@ -307,6 +429,43 @@ class MEC_server:
         count = (original_resource - self.resource) / devices_resource
         return count
 
+    @property
+    def having_device(self, time):
+        return self._having_devices[time]
+    """
+    def save_device(self, time, device: Device):
+        if time == 0:
+            self.allocated_device = device.name
+        else:
+            self.allocated_device.append(device.name)
+
+    def reset_device(self):
+        self.allocated_device = [None]
+    """
+    #@having_device.setter
+    def append_having_device(self, time, device:Device):
+        self._having_devices_count[time] = self._having_devices_count[time] + 1
+        """
+        length = len(self._having_devices[time])
+        if length <= 1:
+            self._having_devices[time] = device.name
+        else:
+            self._having_devices[time].append(device.name)
+        """
+        #if time == 0:
+            #self._having_devices[time] = [device.name]
+        #else:
+            #index = len(self._having_devices)
+            #self._having_devices[time][index].append(device.name)
+            #self._having_devices[time] = self._having_devices[time].device_name.append(device.name)
+
+        """
+        length = np.array(self._having_devices[time]).size
+        if length == 0:
+            self._having_devices[time] = time, device.name
+        else:
+            self._having_devices.append(allocated_table(time, device.name))
+        """
 """
     @property
     def having_devices(self):
@@ -514,6 +673,7 @@ def old_cover_range_search(device_flag, device_lon, device_lat, lon, lat, cover_
     else:
         return memo, MEC_resource, False
 
+MEC_servers = List[MEC_server]
 
 """
 # MECサーバに割り振れたデバイスの数を返す
@@ -560,3 +720,4 @@ def traffic_congestion(lon, lat, cover_range, device_num, devices: Device, syste
 # @having_device.setter
 # def having_device(self, time, value: Device):
 #    self._having_device[time].append(value)
+
