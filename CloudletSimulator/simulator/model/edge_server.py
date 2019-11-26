@@ -8,10 +8,6 @@ from math import radians, cos, sin, asin, sqrt, atan2
 import collections
 import numpy as np
 from geopy.distance import vincenty
-#from recordclass import recordclass
-#from Camelot import namedgroup
-from namedlist import namedlist, FACTORY
-import fabric
 #allocated_table = n('allocated_table', ('t', 'device_name'))
 #allocated_table_list = List[collections.namedtuple('allocated_table', ('t', 'device_name'))]
 #Allocated_device = List(namedlist('Allocated_device', [('device_name', [])]))
@@ -308,7 +304,7 @@ class MEC_server:
         else:
             return memo, False
 
-    def nearest_allocation(self, nearest_range, device: Device, plan_index):
+    def continue_allocation(self, nearest_range, device: Device, plan_index):
         memo = 0
         if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
             distance = distance_calc(float(device.plan[plan_index].y),
@@ -322,7 +318,7 @@ class MEC_server:
         else:
             return memo, False
 
-    def custom_nearest_allocation(self, nearest_range, device: Device, plan_index, time):
+    def custom_continue_allocation(self, nearest_range, device: Device, plan_index, time):
         memo = 0
         #if mode == "add":
         if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
@@ -344,7 +340,7 @@ class MEC_server:
         else:
             return memo, False
 
-    def nearest_mode_adjustment(self, device: Device, plan_index, time, nearest_range):
+    def continue_mode_adjustment(self, device: Device, plan_index, time, nearest_range):
         if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
             old_distance = distance_calc(float(device.plan[plan_index-1].y),
                                      float(device.plan[plan_index-1].x), self.lat, self.lon)
@@ -414,6 +410,12 @@ class MEC_server:
             return False
 
     def create_congestion_list(self, total_resource, current_time):
+        """
+        混雑度表を作成するメソッド
+        :param total_resource:カバー範囲内のデバイスの総要求リソース量
+        :param current_time:現在時刻
+        :return 混雑している場合はTrue, そうでなければFalse
+        """
         if total_resource >= self.congestion_standard:
             self._congestion_flag[current_time] = True
         else:
@@ -428,6 +430,13 @@ class MEC_server:
         """
         count = (original_resource - self.resource) / devices_resource
         return count
+
+    def save_resource(self, time):
+        """
+        ある時刻tのリソース状態を保存するメソッド
+        :param time: ある時刻t
+        """
+        self._resouce_per_resouce[time] = self.resource
 
     @property
     def having_device(self, time):
@@ -673,7 +682,11 @@ def old_cover_range_search(device_flag, device_lon, device_lat, lon, lat, cover_
     else:
         return memo, MEC_resource, False
 
-MEC_servers = List[MEC_server]
+def optimisation_MEC():
+    #基地局配置を調査して、１０等分ぐらいのサーバ群に分ける（集約局的な）
+    print()
+
+
 
 """
 # MECサーバに割り振れたデバイスの数を返す
@@ -711,6 +724,8 @@ def traffic_congestion(lon, lat, cover_range, device_num, devices: Device, syste
                     cnt = cnt + 1
     return cnt * request_resource
 """
+MEC_servers = List[MEC_server]
+#
 # MECサーバが持っているデバイスを表示
 # mec.having_device[time]=[device,device,....]
 # @property
