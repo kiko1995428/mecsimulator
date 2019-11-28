@@ -8,10 +8,6 @@ from math import radians, cos, sin, asin, sqrt, atan2
 import collections
 import numpy as np
 from geopy.distance import vincenty
-#allocated_table = n('allocated_table', ('t', 'device_name'))
-#allocated_table_list = List[collections.namedtuple('allocated_table', ('t', 'device_name'))]
-#Allocated_device = List(namedlist('Allocated_device', [('device_name', [])]))
-#Allocated_device = List[Allocated_device]
 
 class MEC_server:
     num = 0
@@ -50,19 +46,16 @@ class MEC_server:
         self._lat = lat
         self._range = range
         self._system_end_time = system_end_time
-        #self.allocated_device = [None]
-        #self._having_devices = [allocated_device]*system_end_time
         #Allocated_device = namedlist('Allocated_device', ['time','device_name'])
         #Allocated_device = namedlist('Allocated_device', [('device_name', [])])
-        #self._having_devices = [[namedlist('Allocated_device', [('device_name', [])])] * system_end_time]
-        #allocated_table_list = namedlist('allocated_table', 't, device_name')
-        #allocated_table_list namedlist('allocated_table', [('device_name', [])])
-        self._having_devices = [None] * system_end_time
+        #self._having_devices = [[namedlist('Allocated_device', [('device_name', [])])] * system_time
         self._having_devices_count = [0] * system_end_time
+        self._congestion_status = [None] * system_end_time
         self._congestion_flag = [None] * system_end_time
         self._mode = "add"
         self._cnt = 0
         self._resouce_per_resouce =[self._resource] * system_end_time
+        self._congestion_map =[None] * system_end_time
         # ----
 
     @property
@@ -198,6 +191,7 @@ class MEC_server:
                 print("MEC", self.name, "KEEP",", plan_index[",device.name, "]:", plan_index)
                 print(device.plan[plan_index], current_distance)
                 self._mode = "keep"
+                device.set_mode = "keep"
                 #Mec_name = (time, self.name)
                 # MEC_nameの保存
                 #device.append_mec(Mec_name)
@@ -210,10 +204,14 @@ class MEC_server:
             elif device_flag == True and current_id != device.mec_name and check_add_device(device, time) == False:
                 print(green("DECREASE"))
                 self._mode = "decrease"
+                device.set_mode = "decrease"
                 self.resource_adjustment(device, self._mode)
+                device.add_hop_counthop_count()
                 self._mode = "add"
+                device.set_mode = "add"
             else:
                 self._mode = "add"
+                device.set_mode = "add"
 
            # elif (device_flag== True and check_add_device(device, time) == True):
              #   self._mode = "add"
@@ -232,7 +230,10 @@ class MEC_server:
         """
         if mode == "add":
             self.resource = self.resource - device.use_resource
+            #割り当てたMECをデバイスに保存
             device._mec_name = self.name
+            #ホップ数カウント
+            device.add_hop_count()
             print("MEC", self._name, "に","デバイス", device.name ,"追加", self.resource)
             self._test = self._test + 1
         elif mode == "decrease":
@@ -630,109 +631,6 @@ def check_plan_index(current_plan_index, moving_time_length):
     else:
         False
 
-
-# 基地局のカバー範囲内の割り振られていないデバイスを探すメソッド
-# リソース量はここで調整する
-# cover_range_searchの引数がオブジェクト版
-"""
-def cover_range_search(device: Device, plan_index, lon, lat, cover_range, id, MEC_resource,
-                       app_resource):
-    memo = 0
-    if (MEC_resource > 0) or ((MEC_resource - app_resource) >= 0):
-        distance = distance_calc(float(device.plan[plan_index].y),
-                                 float(device.plan[plan_index].x), lat, lon)
-        if distance <= cover_range:
-            memo = id
-            MEC_resource = MEC_resource - app_resource
-            return memo, MEC_resource, True
-        else:
-            return memo, MEC_resource, False
-    else:
-        return memo, MEC_resource, False
-"""
-
-
-# test用簡易版
-def cover_range_search2(device_flag, device_lon, device_lat, lon, lat, cover_range, id):
-    memo = 0
-    if device_flag == False:
-        distance = distance_calc(device_lat, device_lon, lat, lon)
-        if distance <= cover_range:
-            # print("found!!!!!")
-            print("distance:", distance, "m")
-            device_flag = True
-            memo = id
-            return device_flag, memo
-        else:
-            return device_flag, memo
-    else:
-        return device_flag, memo
-
-
-def old_cover_range_search(device_flag, device_lon, device_lat, lon, lat, cover_range, id, MEC_resource, app_resource):
-    memo = 0
-    if (device_flag == False) or (MEC_resource > 0) or ((MEC_resource - app_resource) >= 0):
-        distance = distance_calc(device_lat, device_lon, lat, lon)
-        if distance <= cover_range:
-            memo = id
-            MEC_resource = MEC_resource - app_resource
-            return memo, MEC_resource, True
-        else:
-            return memo, MEC_resource, False
-    else:
-        return memo, MEC_resource, False
-
-def optimisation_MEC():
-    #基地局配置を調査して、１０等分ぐらいのサーバ群に分ける（集約局的な）
-    print()
-
-
-
-"""
-# MECサーバに割り振れたデバイスの数を返す
-def allocated_devices_count(original_resource, corrent_resource, devices_resource):
-    count = (original_resource - corrent_resource) / devices_resource
-    return count
-
-# 混雑度計算
-def traffic_congestion(lon, lat, cover_range, device_num, devices: Device, system_time, request_resource):
-    cnt = 0
-    for i in range(device_num):
-        # system_timeとplanのインデックス番号の対応付ける処理を記述する必要あり
-        # 引数のsystem_timeからインデックス番号と対応付けられている時間を求める
-        # なぜか起動時間と終了時間が反映されていない
-        startup = devices[i].startup_time
-        shutdown = devices[i].shutdown_time
-        # print(startup)
-        # print(shutdown)
-        position = (lat, lon)
-        if startup <= system_time and shutdown >= system_time:
-            # デバイスのplanのindex番号を計算
-            index = int(system_time) - int(startup)
-            if index < (shutdown - startup):
-                # vincety法
-                # --
-                # device_lat = float(devices[i].plan[index].y)
-                # device_lon = float(devices[i].plan[index].x)
-                # device_position = (device_lat, device_lon)
-                # distance = vincenty(position, device_position).miles * 1609.34
-                # ---
-                # ユーグリット距離
-                distance = distance_calc(float(devices[i].plan[index].y), float(devices[i].plan[index].x), lat, lon)
-                # カバー範囲内のデバイスをカウント
-                if distance <= cover_range:
-                    cnt = cnt + 1
-    return cnt * request_resource
-"""
 MEC_servers = List[MEC_server]
-#
-# MECサーバが持っているデバイスを表示
-# mec.having_device[time]=[device,device,....]
-# @property
-# def having_device(self, time):
-#    return self._having_device[time]
 
-# @having_device.setter
-# def having_device(self, time, value: Device):
-#    self._having_device[time].append(value)
 

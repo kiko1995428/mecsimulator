@@ -40,7 +40,8 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
         #継続割り当ての時
         if mec[ans_id].name == device.mec_name:
             print(device.plan[plan_index])
-            mec[ans_id]._mode == "keep"
+            mec[ans_id]._mode = "keep"
+            device.set_mode = "keep"
             print("KEEP", plan_index)
             device.mec_name = mec[ans_id].name
             mec[ans_id].append_having_device(time, device)
@@ -48,11 +49,14 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
         #割り当て先が移動する時(新規割り当て以外)
         elif mec[ans_id].name != device.mec_name and check_add_device(device, time)==False:
             # リソースを増やす
-            mec[ans_id] == "decrease"
+            mec[ans_id]._mode == "decrease"
+            device.set_mode = "keep"
             print("DECREASE")
             mec[ans_id].resource_adjustment(device, mec[ans_id]._mode)
+            device.add_hop_count()
             # リソースを減らす
             mec[ans_id]._mode = "add"
+            device.set_mode = "add"
             mec[ans_id].resource_adjustment(device, mec[ans_id]._mode)
             device.mec_name = mec[ans_id].name
             mec[ans_id].append_having_device(time, device)
@@ -60,6 +64,7 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
         else:
             # リソースを減らす
             mec[ans_id]._mode == "add"
+            device.set_mode = "add"
             mec[ans_id].resource_adjustment(device, mec[ans_id]._mode)
             device.mec_name = mec[ans_id].name
             device.mec_name = mec[ans_id].name

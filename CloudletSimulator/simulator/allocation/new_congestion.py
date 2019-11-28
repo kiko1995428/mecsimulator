@@ -3,20 +3,21 @@ from CloudletSimulator.simulator.model.device import Device,Devices
 from geopy.distance import vincenty
 import math
 from math import radians, cos, sin, asin, sqrt, atan2
+import operator
+from typing import List
 
+system_time = 100
+#sorted_device = [Devices]
+sorted_devices = [Devices] * system_time
 
-# 混雑度の基準値
-def congestion_standard(mec: MEC_server):
-    return mec.resource * 0.3
-
-def all_traffic_congestion(mecs:MEC_servers, devices: Devices, system_time):
+def traffic_congestion(mecs:MEC_servers, devices: Devices, system_time):
     data_length = len(mecs)
     for t in range (system_time):
         for m in range (data_length):
-            create_congestion_list(mecs[m], mecs[m].traffic_congestion(devices, t), t)
+            traffic_congestion_calc(mecs[m], devices, t)
+    #devices_congestion_sort(devices, system_time)
 
-
-def traffic_congestion(mec:MEC_server, devices: Devices, time):
+def traffic_congestion_calc(mec:MEC_server, devices: Devices, time):
     """
     あるMECのカバー範囲内の要求リソース量の総和を求める計算（混雑度）
     :param device: デバイス
@@ -26,6 +27,7 @@ def traffic_congestion(mec:MEC_server, devices: Devices, time):
     cnt = 0
     device_num = len(devices)
     sum = 0
+    save =[None]
     for i in range(device_num):
         startup = devices[i].startup_time
         shutdown = devices[i].shutdown_time
@@ -35,12 +37,33 @@ def traffic_congestion(mec:MEC_server, devices: Devices, time):
             if index < (shutdown - startup):
                 distance = distance_calc(float(devices[i].plan[index].y), float(devices[i].plan[index].x), mec.lat,
                                          mec.lon)
-                if distance <= mec.range:
+                if distance <= (mec.range * 2):
+                    if save[0] == None:
+                        save[0] = i
+                    else:
+                        save.append(i)
                     cnt = cnt + 1
                     sum = sum + devices[i].use_resource
-    return sum
+    #print(save)
+    mec._congestion_status[time] = sum
+    if save != [None]:
+        for save_index in save:
+            #print(save_index, time)
+            devices[save_index]._congestion_status[time] = sum
 
+# デバイスを混雑度順に降順ソートする
+def devices_congestion_sort(devices:Device, system_time):
+    for t in range(system_time):
+        sorted_devices[t] = sorted(devices, key=lambda d: d._congestion_status[t], reverse=True)
+    return sorted_devices
 
+# 混雑度の基準値
+# 使わない
+def congestion_standard(mec: MEC_server):
+    return mec.resource * 0.3
+
+#混雑しているかどうか
+#使わない
 def congestion_check(mec:MEC_server, total_resource):
     """
     混雑しているかのチェック
@@ -52,7 +75,7 @@ def congestion_check(mec:MEC_server, total_resource):
     else:
         return False
 
-
+#使わない
 def create_congestion_list(mec:MEC_server, total_resource, current_time):
     """
     混雑度表を作成するメソッド
