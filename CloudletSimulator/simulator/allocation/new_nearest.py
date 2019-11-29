@@ -21,64 +21,83 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
     #device_lat = float(device.plan[plan_index].y)
     #device_lon = float(device.plan[plan_index].x)
     #device_position = (device_lat, device_lon)
+    cnt = 0
 
     # 最近傍法を使うために、各MECサーバとの距離を計算
     for m in range(data):
         #position = (mec[m].lat, mec[m].lon)
-        if mec[m].check_resource(device.use_resource) == True:
+        if mec[m].check_resource(device.use_resource) == True and len(device.plan) > plan_index:
             distance[m] = distance_calc(float(device.plan[plan_index].y),
                                         float(device.plan[plan_index].x), mec[m].lat, mec[m].lon)
             #distance[m] = vincenty(position, device_position).miles * 1609.34
         else:
             distance[m] = None
+            cnt = cnt + 1
         #print(distance)
-    # 最も距離が近いMECサーバを選び、その配列のインデックスを取得する
-    ans_id = distance.index(min(distance))
-    if min(distance) <= cover_range:
+    if cnt < data:
         # 最も距離が近いMECサーバを選び、その配列のインデックスを取得する
-        # ans_id = distance.index(min(distance))
-        print(device.mec_name)
-        ans_id = mec[ans_id].name
-        print(mec[ans_id].name, device.mec_name, device.lost_flag)
-        #継続割り当ての時
-        if mec[ans_id].name == device.mec_name and device.lost_flag == False:
-            print(device.plan[plan_index])
-            #mec[ans_id]._mode = "keep"
-            device.set_mode = "keep"
-            mec[ans_id].custom_resource_adjustment(device, time)
-            print("KEEP", plan_index)
-            device.mec_name = mec[ans_id].name
-            mec[ans_id].add_having_device(time)
-            device.switch_lost_flag = False
-        # 移動する時(新規割り当て以外)
-        elif mec[ans_id].name != device.mec_name and device._lost_flag == False and mec[ans_id].name != None:
-            # リソースを増やす
-            device.set_mode = "decrease"
-            mec[device.mec_name - 1].custom_resource_adjustment(device, time)
-            mec[device.mec_name -1].save_resource(time)
-            print("DECREASE")
-            #mec[device.mec_name-1].decrease_having_device(time)
+        ans_id = distance.index(min(distance))
+        if min(distance) <= cover_range:
+            # 最も距離が近いMECサーバを選び、その配列のインデックスを取得する
+            # ans_id = distance.index(min(distance))
+            print(device.mec_name)
+            ans_id = mec[ans_id].name
+            print(mec[ans_id].name, device.mec_name, device.lost_flag)
+            #継続割り当ての時
+            if mec[ans_id].name == device.mec_name and device.lost_flag == False:
+                print(device.plan[plan_index])
+                #mec[ans_id]._mode = "keep"
+                device.set_mode = "keep"
+                mec[ans_id].custom_resource_adjustment(device, time)
+                print("KEEP", plan_index)
+                device.mec_name = mec[ans_id].name
+                mec[ans_id].add_having_device(time)
+                device.switch_lost_flag = False
+            # 移動する時(新規割り当て以外)
+            elif mec[ans_id].name != device.mec_name and device._lost_flag == False and mec[ans_id].name != None:
+                # リソースを増やす
+                device.set_mode = "decrease"
+                mec[device.mec_name - 1].custom_resource_adjustment(device, time)
+                mec[device.mec_name -1].save_resource(time)
+                print("DECREASE")
+                #mec[device.mec_name-1].decrease_having_device(time)
 
-            # リソースを減らす
-            device.set_mode = "add"
-            mec[ans_id].custom_resource_adjustment(device, time)
-            device.mec_name = mec[ans_id].name
-            mec[ans_id].add_having_device(time)
-            #mec[ans_id].save_resource(time)
-            device.switch_lost_flag = False
+                # リソースを減らす
+                device.set_mode = "add"
+                mec[ans_id].custom_resource_adjustment(device, time)
+                device.mec_name = mec[ans_id].name
+                mec[ans_id].add_having_device(time)
+                #mec[ans_id].save_resource(time)
+                device.switch_lost_flag = False
+            else:
+                # リソースを減らす
+                device.set_mode = "add"
+                mec[ans_id].custom_resource_adjustment(device, time)
+                device.mec_name = mec[ans_id].name
+                mec[ans_id].add_having_device(time)
+                #mec[ans_id].save_resource(time)
+                device.switch_lost_flag = False
+            return True, ans_id
         else:
-            # リソースを減らす
-            device.set_mode = "add"
-            mec[ans_id].custom_resource_adjustment(device, time)
-            device.mec_name = mec[ans_id].name
-            mec[ans_id].add_having_device(time)
-            #mec[ans_id].save_resource(time)
-            device.switch_lost_flag = False
-        return True, ans_id
+            # lostした時リソースを増やす
+            #if  mec[ans_id].name != None and device._lost_flag == False and check_add_device(device, time) == False:
+            if mec[ans_id].name != None and device._lost_flag == False:
+                device.set_mode = "decrease"
+                print("DECREASE")
+                mec[device.mec_name - 1].custom_resource_adjustment(device, time)
+                mec[device.mec_name - 1].save_resource(time)
+                #mec[device.mec_name - 1].decrease_having_device(time)
+                device.set_mode = "add"
+
+            device.switch_lost_flag = True
+            device._lost_flag = True
+            device.mec_name = None
+            print("**************")
+            return False, ans_id
     else:
         # lostした時リソースを増やす
-        if  mec[ans_id].name != None and device._lost_flag == False and check_add_device(time) == False:
-            mec[ans_id]._mode == "decrease"
+        #if device._lost_flag == False and check_add_device(device, time) == False:
+        if device._lost_flag == False:
             device.set_mode = "decrease"
             print("DECREASE")
             mec[device.mec_name - 1].custom_resource_adjustment(device, time)
@@ -86,9 +105,12 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
             #mec[device.mec_name - 1].decrease_having_device(time)
             device.set_mode = "add"
 
+        print(device._lost_flag)
         device.switch_lost_flag = True
         device._lost_flag = True
         device.mec_name = None
+        ans_id = None
+        print("---------------")
         return False, ans_id
 
 

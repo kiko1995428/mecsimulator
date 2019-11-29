@@ -51,7 +51,7 @@ for t in range(100):
     for i in range(100):
         print("---new device---", sorted_devices[t][i].name)
         # ここで判定漏れがある
-        if (check_plan_index(sorted_devices[t][i].plan_index, sorted_devices[t][i].moving_time) == True):
+        if (check_plan_index(sorted_devices[t][i].plan_index, len(sorted_devices[t][i].plan)) == False):
             print("skip")
             continue
         if check_between_time(sorted_devices[t][i], t) == True:
@@ -83,18 +83,18 @@ sum = 0
 mec_sum = 0
 for t in range(100):
     #print("time:", t)
-    for m in range(100):
-        if t == 94:
-            print("MEC_ID:", mec[m].name, ", having devices:", mec[m]._having_devices_count[t],
-                    ", mec_resouce:", mec[m]._resource_per_second[t], ", current time:", t)
-            sum = sum + mec[m]._having_devices_count[t]
-            mec_sum = mec_sum + mec[m]._resource_per_second[t]
-        #sum = sum + mec[m]._having_devices_count[t]
-        #mec_sum = mec_sum + mec[m]._resource_per_second[t]
-    #check_simulation(t, 250, 100, sum, mec_sum)
-    #sum = 0
-    #mec_sum = 0
-print(sum, (10000-sum), mec_sum)
+    for m in range(103):
+        #if t == 95:
+            #print("MEC_ID:", mec[m].name, ", having devices:", mec[m]._having_devices_count[t],
+                    #", mec_resouce:", mec[m]._resource_per_second[t], ", current time:", t)
+            #sum = sum + mec[m]._having_devices_count[t]
+            #mec_sum = mec_sum + mec[m]._resource_per_second[t]
+        sum = sum + mec[m]._having_devices_count[t]
+        mec_sum = mec_sum + mec[m]._resource_per_second[t]
+    check_simulation(t, 103, 100, sum, mec_sum)
+    sum = 0
+    mec_sum = 0
+print(sum, (103*100-sum), mec_sum)
 print()
 print(1)
 

@@ -691,7 +691,7 @@ def check_plan_index(current_plan_index, moving_time_length):
     :param moving_time_length: あるデバイスの稼働時間の長さ
     :return True: 指しているindexが稼働時間を超えてなければ真, False: 稼働時間を超えているなら偽
     """
-    if current_plan_index > moving_time_length:
+    if current_plan_index < moving_time_length:
         True
     else:
         False
