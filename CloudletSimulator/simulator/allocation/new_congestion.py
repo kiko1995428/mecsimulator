@@ -1,9 +1,7 @@
 from CloudletSimulator.simulator.model.edge_server import MEC_servers, check_add_device,MEC_server
 from CloudletSimulator.simulator.model.device import Device,Devices
-from geopy.distance import vincenty
 import math
 from math import radians, cos, sin, asin, sqrt, atan2
-import operator
 from typing import List
 
 system_time = 100
@@ -56,37 +54,6 @@ def devices_congestion_sort(devices:Device, system_time):
     for t in range(system_time):
         sorted_devices[t] = sorted(devices, key=lambda d: d._congestion_status[t], reverse=True)
     return sorted_devices
-
-# 混雑度の基準値
-# 使わない
-def congestion_standard(mec: MEC_server):
-    return mec.resource * 0.3
-
-#混雑しているかどうか
-#使わない
-def congestion_check(mec:MEC_server, total_resource):
-    """
-    混雑しているかのチェック
-    :param total_resource:要求リソース量
-    :return: true -> 実行可能, false -> 実行不可能
-    """
-    if total_resource >= congestion_standard(mec):
-        return True
-    else:
-        return False
-
-#使わない
-def create_congestion_list(mec:MEC_server, total_resource, current_time):
-    """
-    混雑度表を作成するメソッド
-    :param total_resource:カバー範囲内のデバイスの総要求リソース量
-    :param current_time:現在時刻
-    :return 混雑している場合はTrue, そうでなければFalse
-    """
-    if total_resource >= mec.congestion_standard:
-        mec._congestion_flag[current_time] = True
-    else:
-        mec._congestion_flag[current_time] = False
 
 # ユーグリット距離
 def distance_calc(lat1, lon1, lat2, lon2):

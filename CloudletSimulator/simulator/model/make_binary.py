@@ -31,6 +31,7 @@ device_flag = False
 # バイナリデータを読み込み
 d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
 devices = pickle.load(d)
+devices = devices[0:100]
 num = len(devices)
 for i in range(num):
     devices[i].startup_time = float(devices[i].plan[0].time) # 各デバイスの起動時間を設定する
@@ -47,6 +48,6 @@ for i in range(num):
 
 # 事前に作成しておいたバイナリデータからデバイスインスタンスを作成
 traffic_congestion(mec, devices, system_end_time)
-f = open('congestion_sorted_devices.binaryfile', 'wb')
+f = open('congestion_checked_devices.binaryfile', 'wb')
 pickle.dump(devices, f)
 f.close

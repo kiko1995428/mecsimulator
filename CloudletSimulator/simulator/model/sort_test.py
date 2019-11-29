@@ -15,17 +15,17 @@ system_end_time = 100
 
 
 # バイナリデータを読み込み
-d = open('congestion_sorted_devices.binaryfile', 'rb')
+d = open('congestion_checked_devices.binaryfile', 'rb')
 devices = pickle.load(d)
 num = len(devices)
-for t in range(system_end_time):
-    for d in range(num):
-        devices[d]._congestion_status[t] = random.randint(1, 20)
+#for t in range(system_end_time):
+    #for d in range(num):
+        #devices[d]._congestion_status[t] = random.randint(1, 20)
 
 #ソートができているかわからない
 #テストが必要
 sorted_devices = devices_congestion_sort(devices, system_end_time)
 
 f = open('congestion_sorted_devices.binaryfile', 'wb')
-pickle.dump(devices, f)
+pickle.dump(sorted_devices, f)
 f.close

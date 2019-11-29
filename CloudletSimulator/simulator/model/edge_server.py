@@ -49,12 +49,13 @@ class MEC_server:
         #Allocated_device = namedlist('Allocated_device', ['time','device_name'])
         #Allocated_device = namedlist('Allocated_device', [('device_name', [])])
         #self._having_devices = [[namedlist('Allocated_device', [('device_name', [])])] * system_time
+        self._having_devices = [[None]] * system_end_time
         self._having_devices_count = [0] * system_end_time
         self._congestion_status = [None] * system_end_time
         self._congestion_flag = [None] * system_end_time
         self._mode = "add"
         self._cnt = 0
-        self._resouce_per_resouce =[self._resource] * system_end_time
+        self._resource_per_second =[self._resource] * system_end_time
         self._congestion_map =[None] * system_end_time
         # ----
 
@@ -158,6 +159,7 @@ class MEC_server:
         """
         self._apps.append(value)
 
+
     def check_allocation(self):
         if self._test == 1 or self._test==0:
             True
@@ -177,6 +179,7 @@ class MEC_server:
         :param time: 現在時刻t
         :return: mode
         """
+        plan_index = device.plan_index
         if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
             old_distance = distance_calc(float(device.plan[plan_index-1].y),
                                      float(device.plan[plan_index-1].x), self.lat, self.lon)
@@ -196,7 +199,7 @@ class MEC_server:
                 # MEC_nameの保存
                 #device.append_mec(Mec_name)
                 device.mec_name = self.name
-                self.append_having_device(time, device)
+                self.add_having_device(time)
 
             #elif ((device_flag == False) or (current_id != old_id)) and (check_add_device(device, time)==False):
             #elif(((old_distance >= self.range or current_distance >= self.range))
@@ -205,8 +208,7 @@ class MEC_server:
                 print(green("DECREASE"))
                 self._mode = "decrease"
                 device.set_mode = "decrease"
-                self.resource_adjustment(device, self._mode)
-                device.add_hop_counthop_count()
+                self.resource_adjustment(device)
                 self._mode = "add"
                 device.set_mode = "add"
             else:
@@ -221,14 +223,16 @@ class MEC_server:
         #else:
             #self._mode == "lack"
 
-    def resource_adjustment(self, device:Device, mode):
+    #def resource_adjustment(self, device:Device, mode):
+    def resource_adjustment(self, device: Device):
         """
         MECのカバー範囲内のデバイスを探すメソッド
         :param device: デバイス
         :param plan_index: デバイスの計画表（plan）のリストのインデックス
         :return memo: 発見したデバイスのID, self.resource: MECの保有リソース量, boolean:発見できたかどうかの判定
         """
-        if mode == "add":
+        #if mode == "add":
+        if device.mode == "add":
             self.resource = self.resource - device.use_resource
             #割り当てたMECをデバイスに保存
             device._mec_name = self.name
@@ -236,8 +240,41 @@ class MEC_server:
             device.add_hop_count()
             print("MEC", self._name, "に","デバイス", device.name ,"追加", self.resource)
             self._test = self._test + 1
-        elif mode == "decrease":
+        #elif mode == "decrease":
+        elif device.mode == "decrease":
             self.resource = self.resource + device.use_resource
+            device.add_hop_count()
+            print("デバイス移動")
+            self._test = self._test - 1
+        else:
+            self.resource = self.resource
+            print("MEC", self._name, "に", "デバイス", device.name, "KEEP", self.resource)
+
+    def custom_resource_adjustment(self, device: Device, time):
+        """
+        MECのカバー範囲内のデバイスを探すメソッド
+        :param device: デバイス
+        :param plan_index: デバイスの計画表（plan）のリストのインデックス
+        :return memo: 発見したデバイスのID, self.resource: MECの保有リソース量, boolean:発見できたかどうかの判定
+        """
+        #if mode == "add":
+        if device.mode == "add":
+            self.resource = self.resource - device.use_resource
+            #self.append_having_device(device, time)
+            device._allocation_check = device._allocation_check + 1
+            device.check_allocation()
+            #割り当てたMECをデバイスに保存
+            device._mec_name = self.name
+            #ホップ数カウント
+            device.add_hop_count()
+            print("MEC", self._name, "に","デバイス", device.name ,"追加", self.resource)
+            self._test = self._test + 1
+        #elif mode == "decrease":
+        elif device.mode == "decrease":
+            self.resource = self.resource + device.use_resource
+            #self.decrease_having_device(time)
+            device._allocation_check = device._allocation_check - 1
+            device.add_hop_count()
             print("デバイス移動")
             self._test = self._test - 1
         else:
@@ -264,15 +301,15 @@ class MEC_server:
                 #リソース割り当て
                 #self.resource_adjustment(device, mode)
 
-                if self._mode == "add":
+                if device.mode == "add":
                     #self._having_devices[time] = device.name
                     #rrMec_name = (time, self.name)
                     #device.append_mec(Mec_name)
                     #デバイスの追加
-                    self.append_having_device(time, device)
+                    self.add_having_device(time)
                     device.mec_name = self.name
                     # リソース割り当て
-                    self.resource_adjustment(device, self._mode)
+                    self.resource_adjustment(device)
                 #self.resource = self.resource - device.use_resource
                 #elif self._mode == "keep":
                     #Mec_name = (time, self.name)
@@ -284,6 +321,8 @@ class MEC_server:
                 return memo, False
         else:
             return memo, False
+
+
 
     def custom_cover_range_search(self, device: Device, plan_index):
         """
@@ -329,7 +368,7 @@ class MEC_server:
             if distance <= nearest_range:
                 memo = int(self.name)
                 if self._mode == "add":
-                    self.append_having_device(time, device)
+                    self.add_having_device(time)
                     device.mec_name = self.name
                     # リソース割り当て
                     self.resource_adjustment(device, self._mode)
@@ -356,7 +395,7 @@ class MEC_server:
                 print(device.plan[plan_index], current_distance)
                 self._mode = "keep"
                 device.mec_name = self.name
-                self.append_having_device(time, device)
+                self.add_having_device(time)
                 return True
             else:
                 return False
@@ -422,6 +461,7 @@ class MEC_server:
         else:
             self._congestion_flag[current_time] = False
 
+
     def allocated_devices_count(self, original_resource, devices_resource):
         """
         MECに割り当てれているデバイス数を計算するメソッド
@@ -437,7 +477,22 @@ class MEC_server:
         ある時刻tのリソース状態を保存するメソッド
         :param time: ある時刻t
         """
-        self._resouce_per_resouce[time] = self.resource
+        self._resource_per_second[time] = self.resource
+
+    def check_resource_adjustment(self, devices:Devices, original_resource, time):
+        sum = 0
+        num = self._having_devices_count
+        for i in range (num):
+            print()
+            # 持っているデバイスのリストからデバイスの名前と同じものデバイスを呼び出す
+            # 呼び出しデバイスのリソース量を加算して合計sumを作成
+            # self._having_devices[i]
+        #元々のリソースから合計リソースを引いた値が同じなら
+        if self.resource != (original_resource - devices):
+          try:
+              raise ZeroDivisionError
+          except:
+              print("リソース量が間違っています")
 
     @property
     def having_device(self, time):
@@ -452,9 +507,19 @@ class MEC_server:
     def reset_device(self):
         self.allocated_device = [None]
     """
+    def decrease_having_device(self, time):
+        self._having_devices_count[time] = self._having_devices_count[time] - 1
+        #self._having_devices.pop(-1)
+
     #@having_device.setter
-    def append_having_device(self, time, device:Device):
+    def add_having_device(self, time):
         self._having_devices_count[time] = self._having_devices_count[time] + 1
+
+    def append_having_device(self, device:Device, time):
+        if self._having_devices[time] == None:
+            self._having_devices[time] = [device.name]
+        else:
+            self._having_devices[time].append(device.name)
         """
         length = len(self._having_devices[time])
         if length <= 1:
@@ -626,7 +691,7 @@ def check_plan_index(current_plan_index, moving_time_length):
     :param moving_time_length: あるデバイスの稼働時間の長さ
     :return True: 指しているindexが稼働時間を超えてなければ真, False: 稼働時間を超えているなら偽
     """
-    if current_plan_index >= moving_time_length:
+    if current_plan_index > moving_time_length:
         True
     else:
         False

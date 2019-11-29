@@ -1,7 +1,7 @@
 from CloudletSimulator.simulator.model.application import Application
 from CloudletSimulator.simulator.model.route import Route, create_route
 from CloudletSimulator.simulator.model.point import Point,Point3D, random_two_point
-from CloudletSimulator.simulator.model.angle import Angle,Speed,Mec_name
+from CloudletSimulator.simulator.model.angle import Angle, Speed, Mec_name
 from typing import List
 from tqdm import tqdm
 
@@ -9,7 +9,7 @@ from tqdm import tqdm
 class Device:
     num = 0  # type: int
     def __init__(self, name: str=None, startup_time: int=0, resource: int=0,plan: Route=None,
-                 apps: List[Application]=None, angle: List[Angle]=None, speed: List[Speed]=None, mec_name: List[Mec_name]=None):
+                 apps: List[Application]=None, angle: List[Angle]=None, speed: List[Speed]=None, mec_name: List[Mec_name]=None, system_time: int=0):
         if name is None:
             Device.num += 1
             self._name = "d" + str(Device.num)
@@ -43,6 +43,17 @@ class Device:
             self._mec_name = [] #type: List[Mec_name]
         else:
             self._mec_name = mec_name
+        # 毎秒ごとの混雑度を保存するためのリスト
+        #if system_time == 0:
+            #self._system_time = []
+        #else:
+        self._plan_index = 0
+        self._system_time = system_time
+        self._congestion_status = [0] * 100
+        self._hop_count = 0
+        self._mode = "add"
+        self._lost_flag = True
+        self._allocation_check = 0
 
     @property
     def name(self) -> str:
@@ -62,6 +73,7 @@ class Device:
     @property
     def use_resource(self) -> int:
         return self._resource
+
     @use_resource.setter
     def use_resource(self, value) -> None:
         self._resource = value
@@ -116,6 +128,58 @@ class Device:
     def apps(self, value: List[Application]):
         self._apps = value
 
+    @property
+    def system_time(self) -> int:
+        return self._system_time
+
+    @name.setter
+    def system_time(self, value: int) -> None:
+        self._system_time = value
+    @property
+    def hop_count(self) -> int:
+        return self._hop_count
+
+    def add_hop_count(self) -> int:
+        if self._mode == "add":
+            self._hop_count = self._hop_count + 1 # 新規割り当て、切替（割り振った後）時
+        elif self._mode == "decrease":
+            self._hop_count = self._hop_count + 2 #切替（割り振り前）
+        else:
+            self._hop_count = self._hop_count
+
+    @property
+    def mode(self) -> str:
+        return self._mode
+
+    @mode.setter
+    def set_mode(self, value) -> str:
+        self._mode = value
+
+    @property
+    def plan_index(self) -> int:
+        return self._plan_index
+
+    @plan_index.setter
+    def add_plan_index(self) -> int:
+        self._plan_index = self._plan_index + 1
+
+    @property
+    def lost_flag(self) -> bool:
+        return self._lost_flag
+
+    @lost_flag.setter
+    def switch_lost_flag(self, value:bool) -> bool:
+        self._lost_flag = value
+
+    def check_allocation(self):
+        if self._allocation_check == 1 or self._allocation_check == 0:
+            print("OK")
+        else:
+            try:
+                raise ZeroDivisionError
+            except:
+                print("リソース量が間違っています")
+
     """
     @property
     def use_resource(self) -> int:
@@ -148,7 +212,6 @@ class Device:
 
     def append_plan(self, value:Point3D) -> None:
         self._plan.append(value)
-
     def append_mec(self, value: Mec_name) -> None:
         self._mec_name.append(value)
     def append_angle(self, value:Angle) -> None:
@@ -170,6 +233,7 @@ class Device:
         for app in self._apps:
             apn = app.name
         return apn
+
     def is_poweron(self, time: int) -> bool:
         if self.startup_time <= time < self.shutdown_time:
             return True
@@ -194,6 +258,8 @@ class Device:
 
     def add_ds_pri(self, value: int):
         self.ds_pri += value
+
+
 Devices = List[Device]
 
 
