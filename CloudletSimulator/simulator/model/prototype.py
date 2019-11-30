@@ -1,8 +1,9 @@
-# edege_serverのテスト用プログラム
-# 全体時間を考慮している
+# プロトタイププログラム
+# まず、make_binanary.pyでバイナリーファイルを作成し、このプログラムを実行する
 
 from CloudletSimulator.simulator.model.edge_server import MEC_server, check_between_time, check_plan_index
 from CloudletSimulator.simulator.model.device import Device, max_hop_search, min_hop_search
+from CloudletSimulator.simulator.allocation.new_congestion import traffic_congestion, devices_congestion_sort, sorted_devices
 import pandas as pd
 import pickle
 import random
@@ -10,7 +11,7 @@ import numpy as np
 from CloudletSimulator.simulator.allocation.new_nearest import nearest_search
 
 
-system_end_time = 500
+system_end_time = 200
 df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
                  dtype={'lon': 'float', 'lat': 'float'})
 server_type = "LTE"
@@ -28,10 +29,14 @@ for index, series in df.iterrows():
                             cover_range, system_end_time)
 
 d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
-sd = open('congestion_sorted_devices.binaryfile', 'rb')
+cd = open('congestion_checked_devices.binaryfile', 'rb')
+#sd = open('congestion_sorted_devices.binaryfile', 'rb')
 devices = pickle.load(d)
-# 混雑度順でソート済の毎秒ごとのdevices群
-sorted_devices = pickle.load(sd)
+
+cd = pickle.load(cd)
+# 混雑度順で毎秒ごとのdevicesをソートする
+sorted_devices = devices_congestion_sort(cd, system_end_time)
+#sorted_devices = pickle.load(sd)
 # デバイスの総数
 num = len(devices)
 #num = 200
@@ -39,13 +44,13 @@ print(num)
 
 # 各デバイスの起動時間を設定する
 for t in range(system_end_time):
-    for i in range(200):
+    for i in range(100):
         sorted_devices[t][i].startup_time = int(sorted_devices[t][i].startup_time)
 # ---
 # ここからメインの処理
-for t in range(500):
+for t in range(200):
     print("[TIME:", t, "]")
-    for i in range(200):
+    for i in range(100):
         print("---new device---", sorted_devices[t][i].name)
         # plan_indexがデバイスの稼働時間外なら処理をスキップ
         if (check_plan_index(sorted_devices[t][i].plan_index, len(sorted_devices[t][i].plan)) == False):
@@ -82,7 +87,7 @@ def check_simulation(time, mec_num, mec_resource, having_device_resouce_sum, mec
 #テストコード
 sum = 0
 mec_sum = 0
-for t in range(500):
+for t in range(200):
     #print("time:", t)
     for m in range(150):
         #if t == 380:
@@ -96,10 +101,13 @@ for t in range(500):
     sum = 0
     mec_sum = 0
 print(sum, (150*100-sum), mec_sum)
+sorted_devices = sorted_devices[0:199]
 maximum, device_id = max_hop_search(sorted_devices[-1])
 print("device_id:", device_id, ", max_hop:", maximum)
 minimum, device_id = min_hop_search(sorted_devices[-1])
 print("device_id:", device_id, ", min_hop:", minimum)
+
+
 print()
 print(1)
 
