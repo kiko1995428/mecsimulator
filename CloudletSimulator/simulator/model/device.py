@@ -4,6 +4,7 @@ from CloudletSimulator.simulator.model.point import Point,Point3D, random_two_po
 from CloudletSimulator.simulator.model.angle import Angle, Speed, Mec_name
 from typing import List
 from tqdm import tqdm
+import math
 
 
 class Device:
@@ -49,7 +50,7 @@ class Device:
         #else:
         self._plan_index = 0
         self._system_time = system_time
-        self._congestion_status = [0] * 100
+        self._congestion_status = None
         self._hop_count = 0
         self._mode = "add"
         self._lost_flag = True
@@ -180,6 +181,9 @@ class Device:
             except:
                 print("リソース量が間違っています")
 
+    def set_congestion_status(self, system_time):
+        self._congestion_status = [0] * system_time
+
     """
     @property
     def use_resource(self) -> int:
@@ -273,3 +277,23 @@ def create_devices(p_min: Point, p_max: Point, t_max: int, npt: int, move: int):
             d.plan = create_route(start, goal)
             ds.append(d)
     return ds
+
+def max_hop_search(devices:Devices):
+    device_num = len(devices)
+    maximum = 0
+    for d in range(device_num):
+        if maximum < devices[d].hop_count:
+            maximum = devices[d].hop_count
+            index = d
+
+    return maximum, devices[index].name
+
+def min_hop_search(devices: Devices):
+    device_num = len(devices)
+    minimum = 10000000
+    for d in range(device_num):
+        if minimum > devices[d].hop_count:
+            minimum = devices[d].hop_count
+            index = d
+
+    return minimum, devices[index].name

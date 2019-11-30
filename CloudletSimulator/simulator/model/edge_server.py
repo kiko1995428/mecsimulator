@@ -266,7 +266,7 @@ class MEC_server:
             #割り当てたMECをデバイスに保存
             device._mec_name = self.name
             #ホップ数カウント
-            device.add_hop_count()
+            #device.add_hop_count()
             print("MEC", self._name, "に","デバイス", device.name ,"追加", self.resource)
             self._test = self._test + 1
         #elif mode == "decrease":
@@ -274,7 +274,7 @@ class MEC_server:
             self.resource = self.resource + device.use_resource
             #self.decrease_having_device(time)
             device._allocation_check = device._allocation_check - 1
-            device.add_hop_count()
+            #device.add_hop_count()
             print("デバイス移動")
             self._test = self._test - 1
         else:
@@ -497,16 +497,7 @@ class MEC_server:
     @property
     def having_device(self, time):
         return self._having_devices[time]
-    """
-    def save_device(self, time, device: Device):
-        if time == 0:
-            self.allocated_device = device.name
-        else:
-            self.allocated_device.append(device.name)
 
-    def reset_device(self):
-        self.allocated_device = [None]
-    """
     def decrease_having_device(self, time):
         self._having_devices_count[time] = self._having_devices_count[time] - 1
         #self._having_devices.pop(-1)
@@ -520,122 +511,6 @@ class MEC_server:
             self._having_devices[time] = [device.name]
         else:
             self._having_devices[time].append(device.name)
-        """
-        length = len(self._having_devices[time])
-        if length <= 1:
-            self._having_devices[time] = device.name
-        else:
-            self._having_devices[time].append(device.name)
-        """
-        #if time == 0:
-            #self._having_devices[time] = [device.name]
-        #else:
-            #index = len(self._having_devices)
-            #self._having_devices[time][index].append(device.name)
-            #self._having_devices[time] = self._having_devices[time].device_name.append(device.name)
-
-        """
-        length = np.array(self._having_devices[time]).size
-        if length == 0:
-            self._having_devices[time] = time, device.name
-        else:
-            self._having_devices.append(allocated_table(time, device.name))
-        """
-"""
-    @property
-    def having_devices(self):
-        return self._having_devices
-
-    @having_devices.setter
-    def append_having_devices(self, time, device: Device):
-        self._having_devices[time].append(device)
-
-def can_append_device(self, device: Device, app_check: bool=False) -> bool:
-
-    #指定されたデバイスが追加可能か判定するメソッド
-    #:param device: 追加するデバイス(Deviceクラス)
-    #:param app_check: アプリケーション名のチェックを行うか
-    #:return: 追加可能ならTrue，追加不可能ならFalse
-
-    if app_check:
-        for app in device.apps:
-            if not self.is_operatable_application(app.name):
-                return False
-    if self.empty_resource < device.use_resource:
-        return False
-    return True
-
-def is_operatable_application(self, app_name: str) -> bool:
-    clear
-
-    #指定されたアプリケーションが実行可能か返す
-    #:param app_name: アプリケーション名
-    #:return: true -> 実行可能, false -> 実行不可能
-
-    if app_name in [app.name for app in self.apps]:
-        return True
-    else:
-        return False
-
-def append_device(self, new_device: Device) -> None:
-
-    #指定されたデバイスをクラウドレットに追加する
-    #:param new_device:
-    #:return:
-    self._devices.append(new_device)
-    if self.can_append_device(new_device):
-        self._devices.append(new_device)
-    else:
-        raise Exception("リソースが不足しています")
-
-def apps_append(self, value: Application):
-    self._apps.append(value)
-
-def remove_device(self, device: Device) -> None:
-    del self._devices[self._devices.index(device)]
-
-#Cloudlet集合の定義
-#型アノテーション用だが現状意味はない(2017/06/14)
-
-CloudletRowItems = List[MEC_server]
-NearCloudlets = List[MEC_server]
-Cloudlets = List[CloudletRowItems]
-AllTimeCloudlets = List[MEC_server]
-
-
-def create_all_time_cloudlets(t_len: int, x_len: int, y_len: int, r: int=5) -> AllTimeCloudlets:
-
-   #時間軸、横軸、縦軸の最大長を指定してCloudletの三次元リストを生成する。
-    #:param t_len: 時間軸の最大長
-    #:param x_len: 横軸の最大長
-    #:param y_len: 縦軸の最大長
-    #:param r: 各クラウドレットの所有リソース
-   # :return:
-
-    all_time_cloudlets = [[[Cloudlet(r, Point3D(i, j, k)) for i in range(x_len)]
-                           for j in range(y_len)]
-                          for k in range(t_len)]     # type: AllTimeCloudlets
-    return all_time_cloudlets
-
-
-def is_valid_point(cloudlets: Cloudlets, p: Point) -> bool:
-    if not (0 <= p.y < len(cloudlets)):
-        return False
-    if not (0 <= p.x < len(cloudlets[p.y])):
-        return False
-    return True
-
-
-def check_allocate(cloudlets: AllTimeCloudlets, devices: Devices) -> bool:
-
-    #正常な割り当てが成功しているかを検査する
-   # :param cloudlets:
-    #:param devices:
-   # :return:
-
-    # Todo: 未実装
-    return True
-"""
 
 def distance_calc(lat1, lon1, lat2, lon2):
     """

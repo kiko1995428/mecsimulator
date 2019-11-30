@@ -58,6 +58,7 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 # リソースを増やす
                 device.set_mode = "decrease"
                 mec[device.mec_name - 1].custom_resource_adjustment(device, time)
+                device.add_hop_count()
                 mec[device.mec_name -1].save_resource(time)
                 print("DECREASE")
                 #mec[device.mec_name-1].decrease_having_device(time)
@@ -65,6 +66,7 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 # リソースを減らす
                 device.set_mode = "add"
                 mec[ans_id].custom_resource_adjustment(device, time)
+                device.add_hop_count()
                 device.mec_name = mec[ans_id].name
                 mec[ans_id].add_having_device(time)
                 #mec[ans_id].save_resource(time)
@@ -73,6 +75,7 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 # リソースを減らす
                 device.set_mode = "add"
                 mec[ans_id].custom_resource_adjustment(device, time)
+                device.add_hop_count()
                 device.mec_name = mec[ans_id].name
                 mec[ans_id].add_having_device(time)
                 #mec[ans_id].save_resource(time)
@@ -86,6 +89,7 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 print("DECREASE")
                 mec[device.mec_name - 1].custom_resource_adjustment(device, time)
                 mec[device.mec_name - 1].save_resource(time)
+                device.add_hop_count()
                 #mec[device.mec_name - 1].decrease_having_device(time)
                 device.set_mode = "add"
 
@@ -101,6 +105,7 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
             device.set_mode = "decrease"
             print("DECREASE")
             mec[device.mec_name - 1].custom_resource_adjustment(device, time)
+            device.add_hop_count()
             mec[device.mec_name - 1].save_resource(time)
             #mec[device.mec_name - 1].decrease_having_device(time)
             device.set_mode = "add"
