@@ -50,7 +50,7 @@ class Device:
         #else:
         self._plan_index = 0
         self._system_time = system_time
-        self._congestion_status = None
+        self._congestion_status = [0] * 100 #system_time
         self._hop_count = 0
         self._mode = "add"
         self._lost_flag = True

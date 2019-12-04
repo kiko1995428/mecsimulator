@@ -510,8 +510,6 @@ class MEC_server:
            # self._having_devices[time].append(device.use_resource)
 
 
-
-
 def distance_calc(lat1, lon1, lat2, lon2):
     """
     ２点の緯度経度から距離（メートル）を計算するメソッド
