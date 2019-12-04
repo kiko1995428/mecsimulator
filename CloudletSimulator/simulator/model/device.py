@@ -278,7 +278,12 @@ def create_devices(p_min: Point, p_max: Point, t_max: int, npt: int, move: int):
             ds.append(d)
     return ds
 
-def max_hop_search(devices:Devices):
+def max_hop_search(devices: Devices):
+    """
+    デバイス群から最大ホップ数（最大割り当て距離）を計算するメソッド
+    :param devices: ある時刻tのデバイス群
+    :return maximum: 最大ホップ数, devices[].name: そのホップ数を持つデバイスの名前
+    """
     device_num = len(devices)
     maximum = 0
     for d in range(device_num):
@@ -289,11 +294,79 @@ def max_hop_search(devices:Devices):
     return maximum, devices[index].name
 
 def min_hop_search(devices: Devices):
+    """
+    デバイス群から最小ホップ数（最小割り当て距離）を計算するメソッド
+    :param devices: ある時刻tのデバイス群
+    :return maximum: 最小ホップ数, devices[].name: そのホップ数を持つデバイスの名前
+    """
     device_num = len(devices)
     minimum = 10000000
     for d in range(device_num):
-        if minimum > devices[d].hop_count:
+        if minimum > devices[d].hop_count and devices[d].hop_count != 0:
             minimum = devices[d].hop_count
             index = d
-
     return minimum, devices[index].name
+
+def average_hop_calc(devices: Devices):
+    """
+    デバイス群から平均ホップ数（平均割り当て距離）を計算するメソッド
+    :param devices: ある時刻tのデバイス群
+    :return average: 平均ホップ数
+    """
+    device_num = len(devices)
+    cnt = 0
+    sum = 0
+    for d in range(device_num):
+        if devices[d].hop_count != 0:
+            sum = sum + devices[d].hop_count
+            cnt = cnt + 1
+    average = sum / cnt
+    return average
+
+def device_index_search(devices:Devices, device_names):
+    """
+    MECの持っているデバイスの名前からデバイスのインデックスを探すメソッド
+    :param devices: ある時刻tのデバイス群
+    :param device_names: MECの持っているデバイスの名前群
+    :return device_index: MECの持っているデバイスのインデックス群
+    """
+    device_num = len(devices)
+    tmp_names = [None]
+    for d in range(device_num):
+        if tmp_names is None:
+            tmp_names = [devices[d].name]
+        else:
+            tmp_names.append(devices[d].name)
+
+    length = len(tmp_names)
+    for i in range(length):
+        if tmp_names[0] is None:
+            tmp_names.pop(0)
+
+    device_index = [None]
+    for name in device_names:
+        if device_index is None:
+            device_index = [tmp_names.index(name)]
+        else:
+            device_index.append(tmp_names.index(name))
+
+    length = len(device_index)
+    for i in range(length):
+        if device_index[0] is None:
+            device_index.pop(0)
+
+    return device_index
+
+def device_resource_calc(devices:Devices, device_index):
+    """
+    ある時刻tのMECの持っているデバイスの総要求リソース量を計算するメソッド
+    :param devices: ある時刻tのデバイス群
+    :param  MECの持っているデバイスのインデックス群
+    :return average: 平均ホップ数
+    """
+    sum = 0
+    for d_index in device_index:
+        #print(d_index)
+        if d_index is not None:
+            sum = sum + devices[d_index].use_resource
+    return sum

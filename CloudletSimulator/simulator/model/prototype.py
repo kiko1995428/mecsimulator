@@ -1,8 +1,8 @@
 # プロトタイププログラム
 # まず、make_binanary.pyでバイナリーファイルを作成し、このプログラムを実行する
 
-from CloudletSimulator.simulator.model.edge_server import MEC_server, check_between_time, check_plan_index
-from CloudletSimulator.simulator.model.device import Device, max_hop_search, min_hop_search
+from CloudletSimulator.simulator.model.edge_server import MEC_server, check_between_time, check_plan_index, check_allocation
+from CloudletSimulator.simulator.model.device import Device, max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc
 from CloudletSimulator.simulator.allocation.new_congestion import traffic_congestion, devices_congestion_sort, sorted_devices
 import pandas as pd
 import pickle
@@ -11,7 +11,8 @@ import numpy as np
 from CloudletSimulator.simulator.allocation.new_nearest import nearest_search
 
 
-system_end_time = 200
+#system_end_time = 100
+system_end_time = 100
 df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
                  dtype={'lon': 'float', 'lat': 'float'})
 server_type = "LTE"
@@ -19,11 +20,18 @@ MEC_resource = 100
 cover_range = 500
 n = len(df)
 print("Number of MEC server:", n)
+
 mec = [MEC_server(0, 00, " ", 00.00, 00.00, 0, 0)] * n
+for index, series in df.iterrows():
+    mec[index] = MEC_server(MEC_resource, index + 1, server_type, series["lon"], series["lat"],
+                            cover_range, system_end_time)
+mec_num = len(mec)
 device_flag = False
 f = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/sumo/device.binaryfile', 'rb')
-data_length = len(df)
-print("MECs", data_length)
+mec_num = len(df)
+print("MECs", mec_num)
+
+mec = [MEC_server(0, 00, " ", 00.00, 00.00, 0, 0)] * n
 for index, series in df.iterrows():
     mec[index] = MEC_server(MEC_resource, index + 1, server_type, series["lon"], series["lat"],
                             cover_range, system_end_time)
@@ -46,10 +54,14 @@ print(num)
 for t in range(system_end_time):
     for i in range(100):
         sorted_devices[t][i].startup_time = int(sorted_devices[t][i].startup_time)
+
+#save_devices = [] * data_length
 # ---
 # ここからメインの処理
-for t in range(200):
+for t in range(system_end_time):
     print("[TIME:", t, "]")
+    # 絶対必要な処理
+    save_devices = [None] * mec_num
     for i in range(100):
         print("---new device---", sorted_devices[t][i].name)
         # plan_indexがデバイスの稼働時間外なら処理をスキップ
@@ -63,50 +75,65 @@ for t in range(200):
             device_flag, memo = nearest_search(sorted_devices[t][i], mec, sorted_devices[t][i].plan_index, cover_range, t)
             # 最近傍割り当てが成功したら表示する
             if device_flag == True and memo != 0:
-            #if device_flag == True:
-                mec[memo].save_resource(t)
-                print("device:", sorted_devices[t][i].name, "--->", "MEC_ID:", mec[memo].name, ", index:", i)
-                print(sorted_devices[t][i].mec_name, mec[memo].resource)
-                mec[memo].save_resource(t)
+                print("device:", sorted_devices[t][i].name, ", use_resource:", sorted_devices[t][i].use_resource, "--->", "MEC_ID:", mec[memo].name, ", index:", i)
+                # print(sorted_devices[t][i].mec_name, mec[memo].resource)
+                # print(memo, len(save_devices))
+
+                # ---
+                # ここの処理をメソッド化する
+                # なぜindexがmemoなの？ <- mec用のリストだから
+                if save_devices[memo] == None:
+                    save_devices[memo] = [sorted_devices[t][i].name]
+                else:
+                    save_devices[memo].append(sorted_devices[t][i].name)
+                # ---
                 #print(t, memo, index)
                 memo = 0
             else:
                 print("NOT FIND")
             # plan_indexをインクリメント
             sorted_devices[t][i]._plan_index = sorted_devices[t][i]._plan_index + 1
-
-#テスト用関数
-def check_simulation(time, mec_num, mec_resource, having_device_resouce_sum, mec_resource_sum):
-    original_resource = mec_resource * mec_num
-    numerical_goal = original_resource - having_device_resouce_sum
-    if numerical_goal == mec_resource_sum:
-        print("time:",time, " correct")
-    else:
-        print("time:", time, " error")
+    #---
+    # ここの処理もメソッド化する
+    for index in range(mec_num):
+        if save_devices[index] is not None:
+            print("save_devices:", save_devices[index], ", MEC_ID:", mec[index].name)
+            mec[index].append_having_devices(t, save_devices[index])
 #-----
-#テストコード
+# リソース消費量がそれぞれで違う時のテスト用関数を作成する
+# 各秒でMECが持っているデバイスのインデックスと数がわかるものとする
+
 sum = 0
 mec_sum = 0
-for t in range(200):
+having_device_resource_sum = 0
+for t in range(system_end_time):
     #print("time:", t)
     for m in range(150):
-        #if t == 380:
-            #print("MEC_ID:", mec[m].name, ", having devices:", mec[m]._having_devices_count[t],
+        #if t == 16:
+            #print("MEC_ID:", mec[m].name, ", having devices:", mec[m]._having_devices[t], mec[m]._having_devices_count[t],
                     #", mec_resouce:", mec[m]._resource_per_second[t], ", current time:", t)
             #sum = sum + mec[m]._having_devices_count[t]
-            #mec_sum = mec_sum + mec[m]._resource_per_second[t]
-        sum = sum + mec[m]._having_devices_count[t]
+        #mec_sum = mec_sum + mec[m]._resource_per_second[t]
+        #sum = sum + mec[m]._having_devices_count[t]
         mec_sum = mec_sum + mec[m]._resource_per_second[t]
-    check_simulation(t, 150, 100, sum, mec_sum)
+        if mec[m]._having_devices[t] is not None:
+            #print("check", mec[m]._having_devices[t])
+            device_index = device_index_search(sorted_devices[t], mec[m]._having_devices[t])
+            #print(mec[m]._having_devices[t], device_index)
+            having_device_resource_sum = having_device_resource_sum + device_resource_calc(sorted_devices[t], device_index)
+    check_allocation(t, 150, 100, having_device_resource_sum, mec_sum)
+    print((15000 - having_device_resource_sum), mec_sum)
+    having_device_resource_sum = 0
     sum = 0
     mec_sum = 0
-print(sum, (150*100-sum), mec_sum)
-sorted_devices = sorted_devices[0:199]
+#print(sum, (150*100-sum), mec_sum)
+
+sorted_devices = sorted_devices[0:100]
 maximum, device_id = max_hop_search(sorted_devices[-1])
 print("device_id:", device_id, ", max_hop:", maximum)
 minimum, device_id = min_hop_search(sorted_devices[-1])
 print("device_id:", device_id, ", min_hop:", minimum)
-
+print("average_hop:", average_hop_calc(sorted_devices[-1]))
 
 print()
 print(1)

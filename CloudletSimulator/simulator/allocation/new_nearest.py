@@ -52,6 +52,8 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 print("KEEP", plan_index)
                 device.mec_name = mec[ans_id].name
                 mec[ans_id].add_having_device(time)
+                mec[ans_id].save_resource(time)
+                #mec[ans_id].append_having_device(device, time)
                 device.switch_lost_flag = False
             # 移動する時(新規割り当て以外)
             elif mec[ans_id].name != device.mec_name and device._lost_flag == False and mec[ans_id].name != None:
@@ -69,7 +71,9 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 device.add_hop_count()
                 device.mec_name = mec[ans_id].name
                 mec[ans_id].add_having_device(time)
+                mec[ans_id].save_resource(time)
                 #mec[ans_id].save_resource(time)
+                #mec[ans_id].append_having_device(device, time)
                 device.switch_lost_flag = False
             else:
                 # リソースを減らす
@@ -78,7 +82,9 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 device.add_hop_count()
                 device.mec_name = mec[ans_id].name
                 mec[ans_id].add_having_device(time)
+                mec[ans_id].save_resource(time)
                 #mec[ans_id].save_resource(time)
+                #mec[ans_id].append_having_device(device, time)
                 device.switch_lost_flag = False
             return True, ans_id
         else:

@@ -49,7 +49,7 @@ class MEC_server:
         #Allocated_device = namedlist('Allocated_device', ['time','device_name'])
         #Allocated_device = namedlist('Allocated_device', [('device_name', [])])
         #self._having_devices = [[namedlist('Allocated_device', [('device_name', [])])] * system_time
-        self._having_devices = [[None]] * system_end_time
+        self._having_devices = [None] * system_end_time
         self._having_devices_count = [0] * system_end_time
         self._congestion_status = [None] * system_end_time
         self._congestion_flag = [None] * system_end_time
@@ -159,13 +159,6 @@ class MEC_server:
         """
         self._apps.append(value)
 
-
-    def check_allocation(self):
-        if self._test == 1 or self._test==0:
-            True
-        else:
-            False
-
     def mode_adjustment(self, device: Device, plan_index, time):
         """
         デバイスのリソースを調整するモードを返すメソッド
@@ -262,7 +255,6 @@ class MEC_server:
             self.resource = self.resource - device.use_resource
             #self.append_having_device(device, time)
             device._allocation_check = device._allocation_check + 1
-            device.check_allocation()
             #割り当てたMECをデバイスに保存
             device._mec_name = self.name
             #ホップ数カウント
@@ -494,9 +486,13 @@ class MEC_server:
           except:
               print("リソース量が間違っています")
 
-    @property
-    def having_device(self, time):
-        return self._having_devices[time]
+    #@property
+    #def having_devices(self, time):
+        #return self._having_devices[time]
+
+    #@having_devices.setter
+    def append_having_devices(self, time, value):
+        self._having_devices[time] = value
 
     def decrease_having_device(self, time):
         self._having_devices_count[time] = self._having_devices_count[time] - 1
@@ -506,11 +502,15 @@ class MEC_server:
     def add_having_device(self, time):
         self._having_devices_count[time] = self._having_devices_count[time] + 1
 
-    def append_having_device(self, device:Device, time):
-        if self._having_devices[time] == None:
-            self._having_devices[time] = [device.name]
-        else:
-            self._having_devices[time].append(device.name)
+    #def append_having_device(self, device_index, time):
+        #self._having_devices[time].append(device_index)
+        #if self._having_devices[time] == None:
+            #self._having_devices[time] = [device.use_resource]
+        #else:
+           # self._having_devices[time].append(device.use_resource)
+
+
+
 
 def distance_calc(lat1, lon1, lat2, lon2):
     """
@@ -570,6 +570,22 @@ def check_plan_index(current_plan_index, moving_time_length):
         True
     else:
         False
+
+def check_allocation(time, mec_num, mec_resource, having_device_resource_sum, mec_resource_sum):
+    """
+    ある時刻tのMECへのリソース割り当てができているかチェックするメソッド
+    :param time: ある時刻t
+    :param mec_num: MECの数
+    :param mec_resource: MECの１つの元々のリソース量
+    :param having_device_resource_sum: あるMECに割り当てられているデバイスの要求リソース量
+    :param mec_resource_sum: ある時刻tのMECの合計残存リソース量
+    """
+    original_resource = mec_resource * mec_num
+    numerical_goal = original_resource - having_device_resource_sum
+    if numerical_goal == mec_resource_sum:
+        print("time:",time, " correct")
+    else:
+        print("time:", time, " error")
 
 MEC_servers = List[MEC_server]
 
