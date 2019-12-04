@@ -1,12 +1,8 @@
 import csv
 
-from CloudletSimulator.simulator.model.cloudlet import Cloudlet, create_all_time_cloudlets
 from CloudletSimulator.simulator.model.device import Device
 from CloudletSimulator.simulator.model.point import Point3D
 from CloudletSimulator.simulator.model.angle import Angle,Speed
-from CloudletSimulator.simulator.utility.point import route
-from CloudletSimulator.simulator.model.application import Application
-from CloudletSimulator.simulator.utility.data import input_data_to_file
 from typing import List
 import pickle
 import random
@@ -42,9 +38,11 @@ with open('Kuruma.csv', newline='') as csvfile:
 			d.append_plan(d_plan)
 			d.append_speed(d_speed)
 			d.append_angle(d_angle)
-			d.use_resource = 1
+			#d.use_resource = 1
+			d.system_time = 100
+			d.use_resource = random.randint(1, 3)
 			devices.append(d)
 			num += 1
 	f = open('device.binaryfile', 'wb')
-	pickle.dump(devices,f)
+	pickle.dump(devices, f)
 	f.close
