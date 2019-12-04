@@ -25,7 +25,7 @@ def traffic_congestion_calc(mec:MEC_server, devices: Devices, time):
     cnt = 0
     device_num = len(devices)
     sum = 0
-    save =[None]
+    save = [None]
     for i in range(device_num):
         startup = devices[i].startup_time
         shutdown = devices[i].shutdown_time
@@ -36,7 +36,7 @@ def traffic_congestion_calc(mec:MEC_server, devices: Devices, time):
                 distance = distance_calc(float(devices[i].plan[index].y), float(devices[i].plan[index].x), mec.lat,
                                          mec.lon)
                 if distance <= (mec.range * 2):
-                    if save[0] == None:
+                    if save[0] is None:
                         save[0] = i
                     else:
                         save.append(i)
@@ -44,9 +44,10 @@ def traffic_congestion_calc(mec:MEC_server, devices: Devices, time):
                     sum = sum + devices[i].use_resource
     #print(save)
     mec._congestion_status[time] = sum
-    if save != [None]:
+    if save[0] != None:
         for save_index in save:
-            #print(save_index, time)
+            #print(save)
+            #print(save_index, time, sum, devices[save_index]._congestion_status[time])
             devices[save_index]._congestion_status[time] = sum
 
 # デバイスを混雑度順に降順ソートする
