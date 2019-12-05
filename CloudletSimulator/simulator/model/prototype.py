@@ -1,8 +1,8 @@
 # プロトタイププログラム
 # まず、make_binanary.pyでバイナリーファイルを作成し、このプログラムを実行する
 
-from CloudletSimulator.simulator.model.edge_server import MEC_server, check_between_time, check_plan_index, check_allocation
-from CloudletSimulator.simulator.model.device import Device, max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc
+from CloudletSimulator.simulator.model.edge_server import MEC_server, MEC_servers, check_between_time, check_plan_index, check_allocation, copy_to_mec
+from CloudletSimulator.simulator.model.device import max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc
 from CloudletSimulator.simulator.allocation.new_congestion import traffic_congestion, devices_congestion_sort, sorted_devices
 import pandas as pd
 import pickle
@@ -10,8 +10,6 @@ import random
 import numpy as np
 from CloudletSimulator.simulator.allocation.new_nearest import nearest_search
 
-
-#system_end_time = 100
 system_end_time = 100
 df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
                  dtype={'lon': 'float', 'lat': 'float'})
@@ -40,7 +38,6 @@ d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/de
 cd = open('congestion_checked_devices.binaryfile', 'rb')
 #sd = open('congestion_sorted_devices.binaryfile', 'rb')
 devices = pickle.load(d)
-
 cd = pickle.load(cd)
 # 混雑度順で毎秒ごとのdevicesをソートする
 sorted_devices = devices_congestion_sort(cd, system_end_time)
@@ -48,7 +45,7 @@ sorted_devices = devices_congestion_sort(cd, system_end_time)
 # デバイスの総数
 num = len(devices)
 #num = 200
-print(num)
+#print(num)
 
 # 各デバイスの起動時間を設定する
 for t in range(system_end_time):
@@ -60,7 +57,7 @@ for t in range(system_end_time):
 # ここからメインの処理
 for t in range(system_end_time):
     print("[TIME:", t, "]")
-    # 絶対必要な処理
+    # ある時刻tのMECに割り当てらえたデバイスを一時的に保存する用の変数
     save_devices = [None] * mec_num
     for i in range(100):
         print("---new device---", sorted_devices[t][i].name)
@@ -78,9 +75,7 @@ for t in range(system_end_time):
                 print("device:", sorted_devices[t][i].name, ", use_resource:", sorted_devices[t][i].use_resource, "--->", "MEC_ID:", mec[memo].name, ", index:", i)
                 # print(sorted_devices[t][i].mec_name, mec[memo].resource)
                 # print(memo, len(save_devices))
-
                 # ---
-                # ここの処理をメソッド化する
                 # なぜindexがmemoなの？ <- mec用のリストだから
                 if save_devices[memo] == None:
                     save_devices[memo] = [sorted_devices[t][i].name]
@@ -93,12 +88,9 @@ for t in range(system_end_time):
                 print("NOT FIND")
             # plan_indexをインクリメント
             sorted_devices[t][i]._plan_index = sorted_devices[t][i]._plan_index + 1
-    #---
-    # ここの処理もメソッド化する
-    for index in range(mec_num):
-        if save_devices[index] is not None:
-            print("save_devices:", save_devices[index], ", MEC_ID:", mec[index].name)
-            mec[index].append_having_devices(t, save_devices[index])
+    # ある時刻tのMECに一時的に保存していた割り当てたデバイスをコピーする。
+    copy_to_mec(mec, save_devices, t)
+
 #-----
 # リソース消費量がそれぞれで違う時のテスト用関数を作成する
 # 各秒でMECが持っているデバイスのインデックスと数がわかるものとする

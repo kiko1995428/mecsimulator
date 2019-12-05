@@ -587,4 +587,16 @@ def check_allocation(time, mec_num, mec_resource, having_device_resource_sum, me
 
 MEC_servers = List[MEC_server]
 
+def copy_to_mec(mecs:MEC_servers, save_devices, time):
+    """
+    ある時刻tのMECに一時的に保存していた割り当てたデバイスをコピーするメソッド
+    :param mecs: MECサーバ群
+    :param save_devices: ある時刻tに一時的に保存していたMEC群へ割り当てたデバイスのリスト
+    :param time: ある時刻t
+    """
+    mec_num = len(mecs)
+    for index in range(mec_num):
+        if save_devices[index] is not None:
+            # print("save_devices:", save_devices[index], ", MEC_ID:", mecs[index].name)
+            mecs[index].append_having_devices(time, save_devices[index])
 
