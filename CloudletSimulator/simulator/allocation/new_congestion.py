@@ -4,9 +4,9 @@ import math
 from math import radians, cos, sin, asin, sqrt, atan2
 from typing import List
 
-system_time = 100
+#system_time = 200
 #sorted_device = [Devices]
-sorted_devices = [Devices] * system_time
+#sorted_devices = [Devices] * system_time
 
 def traffic_congestion(mecs:MEC_servers, devices: Devices, system_time):
     data_length = len(mecs)
@@ -52,6 +52,7 @@ def traffic_congestion_calc(mec:MEC_server, devices: Devices, time):
 
 # デバイスを混雑度順に降順ソートする
 def devices_congestion_sort(devices:Device, system_time):
+    sorted_devices = [Devices] * system_time
     for t in range(system_time):
         sorted_devices[t] = sorted(devices, key=lambda d: d._congestion_status[t], reverse=True)
     return sorted_devices

@@ -46,14 +46,12 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
             #継続割り当ての時
             if mec[ans_id].name == device.mec_name and device.lost_flag == False:
                 print(device.plan[plan_index])
-                #mec[ans_id]._mode = "keep"
                 device.set_mode = "keep"
                 mec[ans_id].custom_resource_adjustment(device, time)
                 print("KEEP", plan_index)
                 device.mec_name = mec[ans_id].name
                 mec[ans_id].add_having_device(time)
                 mec[ans_id].save_resource(time)
-                #mec[ans_id].append_having_device(device, time)
                 device.switch_lost_flag = False
             # 移動する時(新規割り当て以外)
             elif mec[ans_id].name != device.mec_name and device._lost_flag == False and mec[ans_id].name != None:
@@ -61,9 +59,8 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 device.set_mode = "decrease"
                 mec[device.mec_name - 1].custom_resource_adjustment(device, time)
                 device.add_hop_count()
-                mec[device.mec_name -1].save_resource(time)
+                mec[device.mec_name - 1].save_resource(time)
                 print("DECREASE")
-                #mec[device.mec_name-1].decrease_having_device(time)
 
                 # リソースを減らす
                 device.set_mode = "add"
@@ -71,9 +68,8 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 device.add_hop_count()
                 device.mec_name = mec[ans_id].name
                 mec[ans_id].add_having_device(time)
+                mec[ans_id].add_reboot_count(time)
                 mec[ans_id].save_resource(time)
-                #mec[ans_id].save_resource(time)
-                #mec[ans_id].append_having_device(device, time)
                 device.switch_lost_flag = False
             else:
                 # リソースを減らす
@@ -83,8 +79,8 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 device.mec_name = mec[ans_id].name
                 mec[ans_id].add_having_device(time)
                 mec[ans_id].save_resource(time)
-                #mec[ans_id].save_resource(time)
-                #mec[ans_id].append_having_device(device, time)
+                if device._lost_flag == True and device.startup_time != time:
+                    mec[ans_id].add_reboot_count(time)
                 device.switch_lost_flag = False
             return True, ans_id
         else:
@@ -96,7 +92,6 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 mec[device.mec_name - 1].custom_resource_adjustment(device, time)
                 mec[device.mec_name - 1].save_resource(time)
                 device.add_hop_count()
-                #mec[device.mec_name - 1].decrease_having_device(time)
                 device.set_mode = "add"
 
             device.switch_lost_flag = True
@@ -113,10 +108,9 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
             mec[device.mec_name - 1].custom_resource_adjustment(device, time)
             device.add_hop_count()
             mec[device.mec_name - 1].save_resource(time)
-            #mec[device.mec_name - 1].decrease_having_device(time)
             device.set_mode = "add"
 
-        print(device._lost_flag)
+        #print(device._lost_flag)
         device.switch_lost_flag = True
         device._lost_flag = True
         device.mec_name = None
