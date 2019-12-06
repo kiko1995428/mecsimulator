@@ -56,7 +56,9 @@ class MEC_server:
         self._mode = "add"
         self._cnt = 0
         self._resource_per_second =[self._resource] * system_end_time
-        self._congestion_map =[None] * system_end_time
+        self._congestion_map = [None] * system_end_time
+        self._allocation_count = [0] * system_end_time
+        self._reboot_count = [0] * system_end_time
         # ----
 
     @property
@@ -260,6 +262,7 @@ class MEC_server:
             #ホップ数カウント
             #device.add_hop_count()
             print("MEC", self._name, "に","デバイス", device.name ,"追加", self.resource)
+            self.add_allocation_count(time)
             self._test = self._test + 1
         #elif mode == "decrease":
         elif device.mode == "decrease":
@@ -502,12 +505,20 @@ class MEC_server:
     def add_having_device(self, time):
         self._having_devices_count[time] = self._having_devices_count[time] + 1
 
+    def add_allocation_count(self, time):
+        self._allocation_count[time] = self._allocation_count[time] + 1
+
+    def add_reboot_count(self, time):
+        self._reboot_count[time] = self._reboot_count[time] + 1
+
     #def append_having_device(self, device_index, time):
         #self._having_devices[time].append(device_index)
         #if self._having_devices[time] == None:
             #self._having_devices[time] = [device.use_resource]
         #else:
            # self._having_devices[time].append(device.use_resource)
+
+
 
 
 def distance_calc(lat1, lon1, lat2, lon2):
@@ -600,3 +611,35 @@ def copy_to_mec(mecs:MEC_servers, save_devices, time):
             # print("save_devices:", save_devices[index], ", MEC_ID:", mecs[index].name)
             mecs[index].append_having_devices(time, save_devices[index])
 
+
+def allocation_count_sum(mecs: MEC_servers, system_end_time):
+    """
+    デバイスをMECへ割り当てた合計回数を計算するメソッド
+    :param mecs: MECサーバ群
+    :param system_end_time: システムの終了時間
+    :return  シミュレーション中の割り当て回数の合計
+    """
+    sum = 0
+    mec_num = len(mecs)
+    for t in range(system_end_time):
+        for index in range(mec_num):
+            sum = sum + mecs[index]._allocation_count[t]
+    return sum
+
+def reboot_count_sum(mecs: MEC_servers, system_end_time):
+    #アプリケーションの起動回数計算
+    sum = 0
+    mec_num = len(mecs)
+    for t in range(system_end_time):
+        for index in range(mec_num):
+            sum = sum + mecs[index]._reboot_count[t]
+    return sum
+
+def application_reboot_rate(mecs: MEC_servers, system_end_time):
+    #アプリケーションの再起動発生率計算
+    allocation_sum = allocation_count_sum(mecs,system_end_time)
+    reboot_sum = reboot_count_sum(mecs, system_end_time)
+    reboot_rate = reboot_sum / allocation_sum
+    print(reboot_sum, allocation_sum)
+    return reboot_rate
+    print()

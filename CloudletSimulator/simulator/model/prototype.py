@@ -1,16 +1,16 @@
 # プロトタイププログラム
 # まず、make_binanary.pyでバイナリーファイルを作成し、このプログラムを実行する
 
-from CloudletSimulator.simulator.model.edge_server import MEC_server, MEC_servers, check_between_time, check_plan_index, check_allocation, copy_to_mec
+from CloudletSimulator.simulator.model.edge_server import MEC_server, MEC_servers, check_between_time, check_plan_index, check_allocation, copy_to_mec, application_reboot_rate
 from CloudletSimulator.simulator.model.device import max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc
-from CloudletSimulator.simulator.allocation.new_congestion import traffic_congestion, devices_congestion_sort, sorted_devices
+from CloudletSimulator.simulator.allocation.new_congestion import traffic_congestion, devices_congestion_sort
 import pandas as pd
 import pickle
 import random
 import numpy as np
 from CloudletSimulator.simulator.allocation.new_nearest import nearest_search
 
-system_end_time = 100
+system_end_time = 200
 df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
                  dtype={'lon': 'float', 'lat': 'float'})
 server_type = "LTE"
@@ -44,12 +44,13 @@ sorted_devices = devices_congestion_sort(cd, system_end_time)
 #sorted_devices = pickle.load(sd)
 # デバイスの総数
 num = len(devices)
+num = 200
 #num = 200
 #print(num)
 
 # 各デバイスの起動時間を設定する
 for t in range(system_end_time):
-    for i in range(100):
+    for i in range(num):
         sorted_devices[t][i].startup_time = int(sorted_devices[t][i].startup_time)
 
 #save_devices = [] * data_length
@@ -59,7 +60,7 @@ for t in range(system_end_time):
     print("[TIME:", t, "]")
     # ある時刻tのMECに割り当てらえたデバイスを一時的に保存する用の変数
     save_devices = [None] * mec_num
-    for i in range(100):
+    for i in range(num):
         print("---new device---", sorted_devices[t][i].name)
         # plan_indexがデバイスの稼働時間外なら処理をスキップ
         if (check_plan_index(sorted_devices[t][i].plan_index, len(sorted_devices[t][i].plan)) == False):
@@ -127,6 +128,7 @@ minimum, device_id = min_hop_search(sorted_devices[-1])
 print("device_id:", device_id, ", min_hop:", minimum)
 print("average_hop:", average_hop_calc(sorted_devices[-1]))
 
-print()
+print("AP reboot rate:", application_reboot_rate(mec, system_end_time))
+
 print(1)
 

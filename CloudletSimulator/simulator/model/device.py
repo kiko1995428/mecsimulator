@@ -5,6 +5,7 @@ from CloudletSimulator.simulator.model.angle import Angle, Speed, Mec_name
 from typing import List
 from tqdm import tqdm
 import math
+import collections
 
 
 class Device:
@@ -50,7 +51,8 @@ class Device:
         #else:
         self._plan_index = 0
         self._system_time = system_time
-        self._congestion_status = [0] * 100 #system_time
+        #self._congestion_status = [0] * 200
+        self._congestion_status = [0]
         self._hop_count = 0
         self._mode = "add"
         self._lost_flag = True
@@ -136,6 +138,7 @@ class Device:
     @name.setter
     def system_time(self, value: int) -> None:
         self._system_time = value
+
     @property
     def hop_count(self) -> int:
         return self._hop_count
@@ -265,6 +268,7 @@ class Device:
 
 
 Devices = List[Device]
+name_resource = collections.namedtuple('name_resource', ('name', 'resource'))
 
 
 def create_devices(p_min: Point, p_max: Point, t_max: int, npt: int, move: int):

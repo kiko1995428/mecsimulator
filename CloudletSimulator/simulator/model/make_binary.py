@@ -10,7 +10,7 @@ import random
 
 # SUMO全体の計算時間
 #system_end_time = 4736
-system_end_time = 100
+system_end_time = 200
 # CSV読み込み
 df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
                  dtype={'lon': 'float', 'lat': 'float'})
@@ -31,7 +31,7 @@ device_flag = False
 # バイナリデータを読み込み
 d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
 devices = pickle.load(d)
-devices = devices[0:100]
+devices = devices[0:200]
 num = len(devices)
 for i in range(num):
     devices[i].startup_time = float(devices[i].plan[0].time) # 各デバイスの起動時間を設定する
