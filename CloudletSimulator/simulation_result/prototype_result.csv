@@ -1,0 +1,2 @@
+system_time,MEC_num,device_num,max_hop,max_hop_device,min_hop,min_hop_device,average_hop,AP_reboot_rate
+100,548,200,19,veh0,1,veh13,5.327272727272727,0.5939849624060151
