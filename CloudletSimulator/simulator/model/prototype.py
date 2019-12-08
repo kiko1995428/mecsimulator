@@ -4,13 +4,12 @@
 from CloudletSimulator.simulator.model.edge_server import MEC_server, MEC_servers, check_between_time, check_plan_index, check_allocation, copy_to_mec, application_reboot_rate
 from CloudletSimulator.simulator.model.device import max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc
 from CloudletSimulator.simulator.allocation.new_congestion import traffic_congestion, devices_congestion_sort
+from CloudletSimulator.simulator.convenient_function.write_csv import write_csv
+from CloudletSimulator.simulator.allocation.new_nearest import nearest_search
 import pandas as pd
 import pickle
-import random
-import numpy as np
-from CloudletSimulator.simulator.allocation.new_nearest import nearest_search
 
-system_end_time = 200
+system_end_time = 100
 df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
                  dtype={'lon': 'float', 'lat': 'float'})
 server_type = "LTE"
@@ -35,7 +34,7 @@ for index, series in df.iterrows():
                             cover_range, system_end_time)
 
 d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
-cd = open('congestion_checked_devices.binaryfile', 'rb')
+cd = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/congestion_checked_devices.binaryfile', 'rb')
 #sd = open('congestion_sorted_devices.binaryfile', 'rb')
 devices = pickle.load(d)
 cd = pickle.load(cd)
@@ -46,7 +45,7 @@ sorted_devices = devices_congestion_sort(cd, system_end_time)
 num = len(devices)
 num = 200
 #num = 200
-#print(num)
+print("device", num)
 
 # 各デバイスの起動時間を設定する
 for t in range(system_end_time):
@@ -121,14 +120,33 @@ for t in range(system_end_time):
     mec_sum = 0
 #print(sum, (150*100-sum), mec_sum)
 
-sorted_devices = sorted_devices[0:100]
-maximum, device_id = max_hop_search(sorted_devices[-1])
-print("device_id:", device_id, ", max_hop:", maximum)
-minimum, device_id = min_hop_search(sorted_devices[-1])
-print("device_id:", device_id, ", min_hop:", minimum)
-print("average_hop:", average_hop_calc(sorted_devices[-1]))
+print("system_time: ", system_end_time)
+print("MEC_num: ", mec_num)
+print("device_num: ", num)
 
-print("AP reboot rate:", application_reboot_rate(mec, system_end_time))
+sorted_devices = sorted_devices[0:system_end_time]
+maximum, max_device_id = max_hop_search(sorted_devices[-1])
+print("device_id: ", max_device_id, ", max_hop:", maximum)
+minimum, min_device_id = min_hop_search(sorted_devices[-1])
+print("device_id: ", min_device_id, ", min_hop:", minimum)
+average_hop = average_hop_calc(sorted_devices[-1])
+print("average_hop: ", average_hop)
+reboot_rate = application_reboot_rate(mec, system_end_time)
+print("AP reboot rate:", reboot_rate)
+
+result = [system_end_time]
+result.append(mec_num)
+result.append(num)
+result.append(maximum)
+result.append(max_device_id)
+result.append(minimum)
+result.append(min_device_id)
+result.append(average_hop)
+result.append(reboot_rate)
+
+# pathを動的に変えることで毎回新しいファイルを作成することができる
+path_w = "/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/simulation_result/prototype_result.csv"
+write_csv(path_w, result)
 
 print(1)
 
