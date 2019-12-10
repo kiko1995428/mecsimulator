@@ -59,6 +59,7 @@ class MEC_server:
         self._congestion_map = [None] * system_end_time
         self._allocation_count = [0] * system_end_time
         self._reboot_count = [0] * system_end_time
+        self._device_distance = 0
         # ----
 
     @property
@@ -185,27 +186,40 @@ class MEC_server:
             #ここのアルゴリズムが間違えてる
             #同じIDを割り当て続ける場合
             if (device_flag == True and current_id == device.mec_name):
-            #if (old_distance <= self.range and current_distance <= self.range):
                 print("MEC", self.name, "KEEP",", plan_index[",device.name, "]:", plan_index)
                 print(device.plan[plan_index], current_distance)
                 self._mode = "keep"
                 device.set_mode = "keep"
-                #Mec_name = (time, self.name)
-                # MEC_nameの保存
-                #device.append_mec(Mec_name)
                 device.mec_name = self.name
                 self.add_having_device(time)
+                self.save_resource(time)
+                device.switch_lost_flag = False
 
-            #elif ((device_flag == False) or (current_id != old_id)) and (check_add_device(device, time)==False):
-            #elif(((old_distance >= self.range or current_distance >= self.range))
-                  #or (current_id != old_id) and check_add_device(device, time)==False) and device_flag == True:
             elif device_flag == True and current_id != device.mec_name and check_add_device(device, time) == False:
-                print(green("DECREASE"))
+                print("DECREASE")
                 self._mode = "decrease"
                 device.set_mode = "decrease"
                 self.resource_adjustment(device)
                 self._mode = "add"
                 device.set_mode = "add"
+
+
+                # リソースを増やす
+                device.set_mode = "decrease"
+                mec[device.mec_name - 1].custom_resource_adjustment(device, time)
+                device.add_hop_count()
+                mec[device.mec_name - 1].save_resource(time)
+                print("DECREASE")
+
+                # リソースを減らす
+                device.set_mode = "add"
+                mec[ans_id].custom_resource_adjustment(device, time)
+                device.add_hop_count()
+                device.mec_name = mec[ans_id].name
+                mec[ans_id].add_having_device(time)
+                mec[ans_id].add_reboot_count(time)
+                mec[ans_id].save_resource(time)
+                device.switch_lost_flag = False
             else:
                 self._mode = "add"
                 device.set_mode = "add"
@@ -219,6 +233,7 @@ class MEC_server:
             #self._mode == "lack"
 
     #def resource_adjustment(self, device:Device, mode):
+
     def resource_adjustment(self, device: Device):
         """
         MECのカバー範囲内のデバイスを探すメソッド
@@ -264,6 +279,7 @@ class MEC_server:
             print("MEC", self._name, "に","デバイス", device.name ,"追加", self.resource)
             self.add_allocation_count(time)
             self._test = self._test + 1
+
         #elif mode == "decrease":
         elif device.mode == "decrease":
             self.resource = self.resource + device.use_resource
@@ -297,21 +313,20 @@ class MEC_server:
                 #self.resource_adjustment(device, mode)
 
                 if device.mode == "add":
-                    #self._having_devices[time] = device.name
-                    #rrMec_name = (time, self.name)
-                    #device.append_mec(Mec_name)
-                    #デバイスの追加
-                    self.add_having_device(time)
+                    # リソースを減らす
+                    device.add_hop_count()
                     device.mec_name = self.name
+                    self.add_having_device(time)
+                    if device._lost_flag == True and device.startup_time != time:
+                        self.add_reboot_count(time)
                     # リソース割り当て
-                    self.resource_adjustment(device)
-                #self.resource = self.resource - device.use_resource
-                #elif self._mode == "keep":
-                    #Mec_name = (time, self.name)
-                    #device.append_mec(Mec_name)
+                    self.custom_resource_adjustment(device, time)
+                    self.save_resource(time)
+                    device.switch_lost_flag = False
                 else:
                     self._cnt = self._cnt + 1
                 return memo, True
+
             else:
                 return memo, False
         else:
@@ -511,14 +526,15 @@ class MEC_server:
     def add_reboot_count(self, time):
         self._reboot_count[time] = self._reboot_count[time] + 1
 
+    #def set_device_distance(self, value):
+        #self._device_distance = [0] * value
+
     #def append_having_device(self, device_index, time):
         #self._having_devices[time].append(device_index)
         #if self._having_devices[time] == None:
             #self._having_devices[time] = [device.use_resource]
         #else:
            # self._having_devices[time].append(device.use_resource)
-
-
 
 
 def distance_calc(lat1, lon1, lat2, lon2):
@@ -643,3 +659,4 @@ def application_reboot_rate(mecs: MEC_servers, system_end_time):
     print(reboot_sum, allocation_sum)
     return reboot_rate
     print()
+

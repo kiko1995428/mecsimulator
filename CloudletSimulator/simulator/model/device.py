@@ -57,6 +57,8 @@ class Device:
         self._mode = "add"
         self._lost_flag = True
         self._allocation_check = 0
+        self._continue_count = 0
+        self._MEC_distance = 0
 
     @property
     def name(self) -> str:
@@ -145,7 +147,10 @@ class Device:
 
     def add_hop_count(self) -> int:
         if self._mode == "add":
-            self._hop_count = self._hop_count + 1 # 新規割り当て、切替（割り振った後）時
+            if self._hop_count == 0:
+                self._hop_count = self._hop_count + 1 # 新規割り当て
+            else:
+                self._hop_count = self._hop_count + 2  # 切替（割り振った後）時
         elif self._mode == "decrease":
             self._hop_count = self._hop_count + 2 #切替（割り振り前）
         else:
@@ -266,6 +271,17 @@ class Device:
     def add_ds_pri(self, value: int):
         self.ds_pri += value
 
+    def set_continue_count(self, value: str):
+        if value == "add":
+            self._continue_count = self._continue_count + 1
+        else:
+            self._continue_count = 0
+    def set_MEC_distance(self, value: int):
+        self._MEC_distance = [100000000000000] * value
+#    @property
+    #def continue_count(self):
+        #return self._continue_count
+
 
 Devices = List[Device]
 name_resource = collections.namedtuple('name_resource', ('name', 'resource'))
@@ -293,9 +309,9 @@ def max_hop_search(devices: Devices):
     for d in range(device_num):
         if maximum < devices[d].hop_count:
             maximum = devices[d].hop_count
-            index = d
+            #index = d
 
-    return maximum, devices[index].name
+    return maximum, devices[d].name
 
 def min_hop_search(devices: Devices):
     """
@@ -308,8 +324,8 @@ def min_hop_search(devices: Devices):
     for d in range(device_num):
         if minimum > devices[d].hop_count and devices[d].hop_count != 0:
             minimum = devices[d].hop_count
-            index = d
-    return minimum, devices[index].name
+            #index = d
+    return minimum, devices[d].name
 
 def average_hop_calc(devices: Devices):
     """
@@ -374,3 +390,5 @@ def device_resource_calc(devices:Devices, device_index):
         if d_index is not None:
             sum = sum + devices[d_index].use_resource
     return sum
+
+
