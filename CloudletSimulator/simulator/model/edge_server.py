@@ -582,7 +582,7 @@ def check_add_device(device:Device, time):
     if device.startup_time == time:
         return True
     else:
-        False
+        return False
 
 def check_plan_index(current_plan_index, moving_time_length):
     """
@@ -656,7 +656,7 @@ def application_reboot_rate(mecs: MEC_servers, system_end_time):
     allocation_sum = allocation_count_sum(mecs,system_end_time)
     reboot_sum = reboot_count_sum(mecs, system_end_time)
     reboot_rate = reboot_sum / allocation_sum
-    print(reboot_sum, allocation_sum)
+    print("reboot_sum", reboot_sum, "allocation_sum",allocation_sum)
     return reboot_rate
     print()
 

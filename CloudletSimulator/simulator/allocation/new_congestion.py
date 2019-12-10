@@ -11,6 +11,7 @@ from typing import List
 def traffic_congestion(mecs:MEC_servers, devices: Devices, system_time):
     data_length = len(mecs)
     for t in range (system_time):
+        print("time:", t, ", ", t/system_time*100, "%")
         for m in range (data_length):
             traffic_congestion_calc(mecs[m], devices, t)
     #devices_congestion_sort(devices, system_time)
