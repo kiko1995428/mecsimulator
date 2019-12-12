@@ -55,10 +55,14 @@ class Device:
         self._congestion_status = [0]
         self._hop_count = 0
         self._mode = "add"
-        self._lost_flag = True
+        self._lost_flag = False
         self._allocation_check = 0
         self._continue_count = 0
         self._MEC_distance = 0
+        self._old_mec_name = None
+        self._hop = None
+        self._first_flag = True
+        self._aggregation_name = None
 
     @property
     def name(self) -> str:
@@ -155,6 +159,10 @@ class Device:
             self._hop_count = self._hop_count + 2 #切替（割り振り前）
         else:
             self._hop_count = self._hop_count
+    @property
+    def hop(self):
+        return self._hop
+
 
     @property
     def mode(self) -> str:
@@ -307,11 +315,10 @@ def max_hop_search(devices: Devices):
     device_num = len(devices)
     maximum = 0
     for d in range(device_num):
-        if maximum < devices[d].hop_count:
-            maximum = devices[d].hop_count
-            #index = d
-
-    return maximum, devices[d].name
+        if devices[d].hop is not None:
+            if maximum < max(devices[d].hop):
+                maximum = max(devices[d].hop)
+    return maximum
 
 def min_hop_search(devices: Devices):
     """
@@ -322,10 +329,11 @@ def min_hop_search(devices: Devices):
     device_num = len(devices)
     minimum = 10000000
     for d in range(device_num):
-        if minimum > devices[d].hop_count and devices[d].hop_count != 0:
-            minimum = devices[d].hop_count
+        if devices[d].hop is not None:
+            if minimum > min(devices[d].hop):
+                minimum = min(devices[d].hop)
             #index = d
-    return minimum, devices[d].name
+    return minimum
 
 def average_hop_calc(devices: Devices):
     """
@@ -337,9 +345,10 @@ def average_hop_calc(devices: Devices):
     cnt = 0
     sum = 0
     for d in range(device_num):
-        if devices[d].hop_count != 0:
-            sum = sum + devices[d].hop_count
-            cnt = cnt + 1
+        if devices[d].hop is not None:
+            for h in devices[d].hop:
+                sum = sum + h
+                cnt = cnt + 1
     average = sum / cnt
     return average
 

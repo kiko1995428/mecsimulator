@@ -1,5 +1,6 @@
 from CloudletSimulator.simulator.model.edge_server import MEC_servers, check_add_device, MEC_server,check_between_time, check_plan_index
 from CloudletSimulator.simulator.model.device import Device
+from CloudletSimulator.simulator.model.hop_calc import keep_hop
 import math
 from math import radians, cos, sin, asin, sqrt, atan2
 
@@ -22,6 +23,12 @@ def continue_search(device:Device, mec:MEC_servers, plan_index, cover_range, tim
                 print(device.plan[plan_index])
                 device.set_mode = "keep"
                 mec[mec_index].custom_resource_adjustment(device, time)
+
+                # 追加
+                keep_hop(device)
+                mec[mec_index].add_allocation_count(time)
+                mec[mec_index]._keep_count = mec[mec_index]._keep_count + 1
+
                 print("KEEP", plan_index)
                 device.mec_name = mec[mec_index].name
                 mec[mec_index].add_having_device(time)

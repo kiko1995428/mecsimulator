@@ -60,6 +60,8 @@ class MEC_server:
         self._allocation_count = [0] * system_end_time
         self._reboot_count = [0] * system_end_time
         self._device_distance = 0
+        self._aggregation_name = None
+        self._keep_count = 0
         # ----
 
     @property
@@ -126,6 +128,14 @@ class MEC_server:
     @property
     def range(self) -> float:
         return self._range
+
+    @property
+    def aggregation_station(self):
+        return self._aggregation_name
+
+    def set_aggregation_station(self, value):
+        self._aggregation_name = value
+
 
     #混雑度の基準値
     @property
@@ -208,6 +218,7 @@ class MEC_server:
                 device.set_mode = "decrease"
                 mec[device.mec_name - 1].custom_resource_adjustment(device, time)
                 device.add_hop_count()
+                #device.hop_calc(self)
                 mec[device.mec_name - 1].save_resource(time)
                 print("DECREASE")
 
@@ -637,9 +648,13 @@ def allocation_count_sum(mecs: MEC_servers, system_end_time):
     """
     sum = 0
     mec_num = len(mecs)
+    keep = 0
     for t in range(system_end_time):
         for index in range(mec_num):
             sum = sum + mecs[index]._allocation_count[t]
+    for index in range(mec_num):
+        keep = keep + mecs[index]._keep_count
+    print("KEEP_COUNT", keep)
     return sum
 
 def reboot_count_sum(mecs: MEC_servers, system_end_time):

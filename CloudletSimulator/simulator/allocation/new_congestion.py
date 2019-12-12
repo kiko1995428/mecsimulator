@@ -47,8 +47,6 @@ def traffic_congestion_calc(mec:MEC_server, devices: Devices, time):
     mec._congestion_status[time] = sum
     if save[0] != None:
         for save_index in save:
-            #print(save)
-            #print(save_index, time, sum, devices[save_index]._congestion_status[time])
             devices[save_index]._congestion_status[time] = sum
 
 # デバイスを混雑度順に降順ソートする
