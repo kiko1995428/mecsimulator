@@ -34,13 +34,14 @@ with open('Kuruma.csv', newline='') as csvfile:
 				break
 		if dflag == 0:
 			d = Device(name=d_name)
-			d.startup_time=d_time
+			d.startup_time = d_time
 			d.append_plan(d_plan)
 			d.append_speed(d_speed)
 			d.append_angle(d_angle)
-			#d.use_resource = 1
-			d.system_time = 100
-			d.use_resource = random.randint(1, 3)
+			d.use_resource = 1
+			d._system_time = 100
+			d.set_congestion_status(100)
+			#d.use_resource = random.randint(1, 3)
 			devices.append(d)
 			num += 1
 	f = open('device.binaryfile', 'wb')
