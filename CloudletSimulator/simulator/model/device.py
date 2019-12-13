@@ -344,12 +344,14 @@ def average_hop_calc(devices: Devices):
     device_num = len(devices)
     cnt = 0
     sum = 0
+    average = 0
     for d in range(device_num):
         if devices[d].hop is not None:
             for h in devices[d].hop:
                 sum = sum + h
                 cnt = cnt + 1
-    average = sum / cnt
+    if cnt != 0:
+        average = sum / cnt
     return average
 
 def device_index_search(devices:Devices, device_names):
