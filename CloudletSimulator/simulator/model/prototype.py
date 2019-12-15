@@ -10,11 +10,13 @@ from CloudletSimulator.simulator.model.aggregation_station import set_aggregatio
 import pandas as pd
 import pickle
 
-system_end_time = 100
+system_end_time = 300
+
 df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
                  dtype={'lon': 'float', 'lat': 'float'})
+
 server_type = "LTE"
-MEC_resource = 2
+MEC_resource = 3
 cover_range = 500
 n = len(df)
 print("Number of MEC server:", n)
@@ -38,7 +40,6 @@ for index, series in df.iterrows():
 # 集約局を対応するMECに設定する
 set_aggregation_station(mec)
 
-#d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
 cd = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/congestion_checked_devices.binaryfile', 'rb')
 #sd = open('congestion_sorted_devices.binaryfile', 'rb')
 #devices = pickle.load(d)

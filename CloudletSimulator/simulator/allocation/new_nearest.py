@@ -159,49 +159,46 @@ def nearest_search2(device:Device, mec:MEC_servers, plan_index, cover_range, tim
     :return: 割り当てたans_idをTrueと共に返す, 割り当てられなかった時はFalseを返す
     """
     data = len(mec)
-    distance = collections.namedtuple("distance", ("index", "value"))
+    distance = collections.namedtuple("distance", ("index", "value", "flag"))
     mec_distance = [distance] * data
     cnt = 0
-
     # 最近傍法を使うために、各MECサーバとの距離を計算
     for m in range(data):
-        #position = (mec[m].lat, mec[m].lon)
-        if mec[m].check_resource(device.use_resource) == True and len(device.plan) > plan_index and mec[m].resource>0:
-            #print(mec[m].check_resource(device.use_resource))
+        if mec[m].check_resource(device.use_resource) == True and len(device.plan) > plan_index:
             tmp_distance = distance_calc(float(device.plan[plan_index].y),
-                                        float(device.plan[plan_index].x), mec[m].lat, mec[m].lon)
-            mec_distance[m] = distance(m, tmp_distance)
-            #distance[m] = vincenty(position, device_position).miles * 1609.34
+                                         float(device.plan[plan_index].x), mec[m].lat, mec[m].lon)
+            mec_distance[m] = distance(m, tmp_distance, True)
         else:
-            #distance[m] = 1000000.0000
-            mec_distance[m] = distance(m, 1000000000)
+            mec_distance[m] = distance(m, 100000000, False)
             cnt = cnt + 1
         #print(distance)
-    #if cnt < data:
-    # 最も距離が近いMECサーバを選び、その配列のインデックスを取得する
-    #for m in range(data):
-        #if mec[m].resource <= 0:
-            #distance[m] = 1000000000000000
-
-    #ここが間違ってる
-    # 距離が同じ場合がある時、別のindexを返すことになる
 
     #ans_id = distance.index(min(distance))
     sorted_distance = sorted(mec_distance, key=lambda m:m.value)
     ans_id = sorted_distance[0].index
-    if mec_distance[ans_id].value != sorted_distance[0].value:
-        print(mec_distance[ans_id], sorted_distance[0])
-        sys.exit()
-    if mec[ans_id].resource == 0:
-        print(mec_distance[ans_id], sorted_distance[0])
-        sys.exit()
-    ans_id = ans_id
-
+    """
+    if sorted_distance[0].value < 1000000:
+        ans_id = sorted_distance[0].index
+    else:
+        for m in range(data):
+            if mec[m].resource > 0:
+                print(mec[m].name, mec[m].resource)
+        print(device.name)
+        print(1)
+    """
     # 最も距離が近いMECサーバを選び、その配列のインデックスを取得する
     # ans_id = distance.index(min(distance))
     #print(device.mec_name)
     #ans_id = mec[ans_id].name
     print(mec[ans_id].name, device.mec_name, device.lost_flag)
+
+    if mec[ans_id].resource == 0:
+        for m in range(data):
+            if mec[m].resource > 0:
+                print(mec[m].name)
+        print(device.name)
+        print(1)
+
     if mec[ans_id].resource > 0:
         #継続割り当ての時
         if mec[ans_id].name == device.mec_name:
@@ -262,15 +259,11 @@ def nearest_search2(device:Device, mec:MEC_servers, plan_index, cover_range, tim
 
             mec[ans_id].add_having_device(time)
             mec[ans_id].save_resource(time)
-            #if device._lost_flag == True and device.startup_time != time:
-                #mec[ans_id].add_reboot_count(time)
+
             device.switch_lost_flag = False
         print("MEC_RESOURCE", mec[ans_id].resource)
         return True, ans_id
-    for m in range(data):
-        print(m, ans_id, mec_distance[m])
-    print("mec_id", mec[ans_id].name, "resource", mec[ans_id].resource, "distance", mec_distance[ans_id])
-    sys.exit()
+    print(device.name)
 # ユーグリット距離
 def distance_calc(lat1, lon1, lat2, lon2):
     """
@@ -293,4 +286,5 @@ def distance_calc(lat1, lon1, lat2, lon2):
     val = sin(dLat / 2) * sin(dLat / 2) + sin(dLot / 2) * sin(dLot / 2) * cos(lat1) * cos(lat2)
     ang = 2 * atan2(sqrt(val), sqrt(1 - val))
     return radius * ang  # meter
+
 

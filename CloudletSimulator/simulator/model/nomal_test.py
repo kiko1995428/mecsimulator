@@ -12,11 +12,11 @@ import pandas as pd
 import pickle
 import sys
 
-system_end_time = 100
+system_end_time = 300
 df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
                  dtype={'lon': 'float', 'lat': 'float'})
 server_type = "LTE"
-MEC_resource = 2
+MEC_resource = 3
 cover_range = 500
 n = len(df)
 print("Number of MEC server:", n)
@@ -25,7 +25,6 @@ mec = [MEC_server(0, 00, " ", 00.00, 00.00, 0, 0)] * n
 for index, series in df.iterrows():
     mec[index] = MEC_server(MEC_resource, index + 1, server_type, series["lon"], series["lat"],
                             cover_range, system_end_time)
-
 mec_num = len(df)
 print("MECs", mec_num)
 
@@ -48,9 +47,7 @@ sorted_devices = devices_congestion_sort(cd, system_end_time)
 # デバイスの総数
 num = len(cd)
 
-# デバイスの終了した時、リソースを回復するまで確かめるための変数
-lost_flag =False
-
+keep_count = 0
 #save_devices = [] * data_length
 # ---
 # ここからメインの処理
@@ -66,9 +63,11 @@ for t in range(system_end_time):
             continue
         # plan_indexが稼働時間内なら処理開始
         if check_between_time(sorted_devices[t][i], t) == True:
-            print(sorted_devices[t][i].plan_index)
+            print("plan_index", sorted_devices[t][i].plan_index, "max_index", len(sorted_devices[t][i].plan))
             # 継続 + 最近近傍
             device_flag, memo = continue_search(sorted_devices[t][i], mec, sorted_devices[t][i].plan_index, cover_range, t, 500)
+            if device_flag == True:
+                keep_count = keep_count + 1
             if device_flag == False:
                 device_flag, memo = nearest_search2(sorted_devices[t][i], mec, sorted_devices[t][i].plan_index, cover_range, t)
             # 割り当てが成功したら表示する
@@ -87,11 +86,11 @@ for t in range(system_end_time):
                 memo = 0
             else:
                 print("NOT FIND")
-                sys.exit()
             # plan_indexをインクリメント
             sorted_devices[t][i]._plan_index = sorted_devices[t][i]._plan_index + 1
+        # デバイスの稼働時間を超えた時の処理
         else:
-            # デバイスの稼働時間を超えた時の処理
+            # もしデバイスの終了時間を超えた時のみ（１回だけ）、デバイスに直前に割り当てたMECのリソースをリカバリーする。
             if sorted_devices[t][i].mec_name != [] and sorted_devices[t][i]._lost_flag == False:
                 print("DECREASE")
                 sorted_devices[t][i].set_mode = "decrease"
@@ -100,8 +99,11 @@ for t in range(system_end_time):
                 mec[sorted_devices[t][i].mec_name - 1].save_resource(t)
                 sorted_devices[t][i].set_mode = "add"
                 sorted_devices[t][i]._lost_flag = True
+
     # ある時刻tのMECに一時的に保存していた割り当てたデバイスをコピーする。
     copy_to_mec(mec, save_devices, t)
+
+
 
 #-----
 # リソース消費量がそれぞれで違う時のテスト用関数を作成する
@@ -145,6 +147,7 @@ average_hop = average_hop_calc(sorted_devices[-1])
 print("average_hop: ", average_hop)
 reboot_rate = application_reboot_rate(mec, system_end_time)
 print("AP reboot rate:", reboot_rate)
+print("keep", keep_count)
 
 device_num = len(sorted_devices[-1])
 devices = sorted_devices[-1]
@@ -164,5 +167,6 @@ result.append(reboot_rate)
 # pathを動的に変えることで毎回新しいファイルを作成することができる
 #path_w = "/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/simulation_result/prototype_result.csv"
 #write_csv(path_w, result)
+
 
 print(1)

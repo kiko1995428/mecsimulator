@@ -92,7 +92,7 @@ class Device:
 
     @property
     def shutdown_time(self) -> int:
-        return self.startup_time + self.moving_time
+        return self.startup_time + self.moving_time - 1
 
     @property
     def plan(self) -> Route:

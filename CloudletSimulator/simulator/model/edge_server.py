@@ -62,6 +62,7 @@ class MEC_server:
         self._device_distance = 0
         self._aggregation_name = None
         self._keep_count = 0
+        self._sorted_flag = False
         # ----
 
     @property
@@ -281,6 +282,9 @@ class MEC_server:
         #if mode == "add":
         if device.mode == "add":
             self.resource = self.resource - device.use_resource
+            if self.name == 11 and time == 98:
+                print("77777")
+                print(self.name, self.resource, device.use_resource)
             #self.append_having_device(device, time)
             device._allocation_check = device._allocation_check + 1
             #割り当てたMECをデバイスに保存
@@ -353,17 +357,16 @@ class MEC_server:
         :return memo: 発見したデバイスのID, self.resource: MECの保有リソース量, boolean:発見できたかどうかの判定
         """
         memo = 0
+
         if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
             distance = distance_calc(float(device.plan[plan_index].y),
                                      float(device.plan[plan_index].x), self.lat, self.lon)
             if distance <= self.range:
-                memo = int(self.name)
+                mec_name = int(self.name)
                 #print(memo, distance)
-                return memo, True
-            else:
-                return memo, False
-        else:
-            return memo, False
+                return mec_name, True
+
+        return 1, False
 
     def continue_allocation(self, nearest_range, device: Device, plan_index):
         memo = 0
@@ -537,6 +540,14 @@ class MEC_server:
     def add_reboot_count(self, time):
         self._reboot_count[time] = self._reboot_count[time] + 1
 
+    def modify_resource(self, original_resource, used_resource, time):
+        if self._resource != original_resource -(self._having_devices_count[time] * used_resource):
+            if(original_resource -(self._having_devices_count[time] * used_resource)) < self.resource:
+                self._resource = self._resource + 1
+
+            else:
+                self._resource = self._resource - 1
+            self.save_resource(time)
     #def set_device_distance(self, value):
         #self._device_distance = [0] * value
 
@@ -674,4 +685,10 @@ def application_reboot_rate(mecs: MEC_servers, system_end_time):
     print("reboot_sum", reboot_sum, "allocation_sum",allocation_sum)
     return reboot_rate
     print()
+
+def monitoring_resource(mecs:MEC_servers, MEC_resource, used_resource,time):
+    mec_num = len(mecs)
+    for m in range(mec_num):
+        if (MEC_resource - (mecs[m]._having_devices[time] * used_resource)) != mecs[m]._resource_per_second[time]:
+            sys.exit()
 

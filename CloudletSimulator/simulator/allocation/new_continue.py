@@ -35,7 +35,8 @@ def continue_search(device:Device, mec:MEC_servers, plan_index, cover_range, tim
                 mec[mec_index].save_resource(time)
                 device.switch_lost_flag = False
                 device.set_continue_count("add")
-                return True, mec_index
+                #return True, mec_index
+                return True, mec[mec_index].name
             else:
                 device.set_continue_count("reset")
                 return False, mec_index
