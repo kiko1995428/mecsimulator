@@ -8,46 +8,53 @@ import pandas as pd
 import pickle
 import random
 
-# SUMO全体の計算時間
-#system_end_time = 4736
-system_end_time = 100
-# CSV読み込み
-df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
-                 dtype={'lon': 'float', 'lat': 'float'})
-# 基地局の種類を設定
-server_type = "LTE"
-# サーバの初期リソース量
-MEC_resource = 100
-# 基地局のカバー範囲を設定(メートル)
-cover_range = 500
-# CSVの行数を取得（基地局の数）
-n = len(df)
-print("Number of MEC server:", n)
-# 基地局の数のオブジェクト用リストを作成
-mec = [MEC_server(0, 00, " ", 00.00, 00.00, 0, 0)] * n
+def make_congestion_binary(system_end_time, device_num):
+    # SUMO全体の計算時間
+    #system_end_time = 4736
+    #system_end_time = 100
+    # CSV読み込み
+    df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
+                     dtype={'lon': 'float', 'lat': 'float'})
+    # 基地局の種類を設定
+    server_type = "LTE"
+    # サーバの初期リソース量
+    MEC_resource = 2
+    # 基地局のカバー範囲を設定(メートル)
+    cover_range = 500
+    # CSVの行数を取得（基地局の数）
+    n = len(df)
+    print("Number of MEC server:", n)
+    # 基地局の数のオブジェクト用リストを作成
+    mec = [MEC_server(0, 00, " ", 00.00, 00.00, 0, 0)] * n
 
-# テスト用デバイスデータ
-device_flag = False
-# バイナリデータを読み込み
-d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
-devices = pickle.load(d)
-devices = devices[0:200]
-num = len(devices)
-for i in range(num):
+    # テスト用デバイスデータ
+    device_flag = False
+    # バイナリデータを読み込み
+    d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
+    devices = pickle.load(d)
+    print("デバイスのMAX数", len(devices))
+    devices = devices[0:device_num]
+    #for i in range(2):
+        #devices.extend(devices)
+    num = len(devices)
+    for i in range(num):
+        devices[i].startup_time = float(devices[i].plan[0].time) # 各デバイスの起動時間を設定する
+        devices[i].set_congestion_status(system_end_time)
+        devices[i].set_MEC_distance(len(df))
+        devices[i]._first_flag = True
+
+    # MECインスタンスをCSVを元に生成
+    data_length = len(df)
+    #data_length = 100
+    for index, series in df.iterrows():
+        mec[index] = MEC_server(MEC_resource, index + 1, server_type, series["lon"], series["lat"],
+                                cover_range, system_end_time)
+    # 時間をセット
     devices[i].startup_time = float(devices[i].plan[0].time) # 各デバイスの起動時間を設定する
 
-# MECインスタンスをCSVを元に生成
-data_length = len(df)
-#data_length = 100
-for index, series in df.iterrows():
-    mec[index] = MEC_server(MEC_resource, index + 1, server_type, series["lon"], series["lat"],
-                            cover_range, system_end_time)
-# 時間をセット
-for i in range(num):
-    devices[i].startup_time = float(devices[i].plan[0].time) # 各デバイスの起動時間を設定する
+    # 事前に作成しておいたバイナリデータからデバイスインスタンスを作成
+    traffic_congestion(mec, devices, system_end_time)
 
-# 事前に作成しておいたバイナリデータからデバイスインスタンスを作成
-traffic_congestion(mec, devices, system_end_time)
-f = open('congestion_checked_devices.binaryfile', 'wb')
-pickle.dump(devices, f)
-f.close
+    f = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/congestion_checked_devices.binaryfile', 'wb')
+    pickle.dump(devices, f)
+    f.close

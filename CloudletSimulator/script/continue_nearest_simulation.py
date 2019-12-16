@@ -6,6 +6,7 @@ from CloudletSimulator.simulator.allocation.new_continue import continue_search
 from CloudletSimulator.simulator.convenient_function.write_csv import write_csv
 from CloudletSimulator.simulator.allocation.new_nearest import nearest_search, nearest_search2
 from CloudletSimulator.simulator.model.aggregation_station import set_aggregation_station
+from CloudletSimulator.simulator.allocation.move_plan_priority import search_mec_index
 import pandas as pd
 import pickle
 import sys
@@ -22,9 +23,7 @@ def continue_nearest_simulation(system_end_time, device_num, continue_distance, 
     for index, series in df.iterrows():
         mec[index] = MEC_server(MEC_resource, index + 1, server_type, series["lon"], series["lat"],
                                 cover_range, system_end_time)
-    mec_num = len(mec)
-    device_flag = False
-    f = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/sumo/device.binaryfile', 'rb')
+
     mec_num = len(df)
     print("MECs", mec_num)
     mec = [MEC_server(0, 00, " ", 00.00, 00.00, 0, 0)] * n
@@ -37,27 +36,37 @@ def continue_nearest_simulation(system_end_time, device_num, continue_distance, 
 
     # ---
     # デバイスの準備
-    d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
-    devices = pickle.load(d)
-    devices = devices[0:device_num]
-    num = len(devices)
-    print("device_num", num)
-    for i in range(num):
-        devices[i].startup_time = float(devices[i].plan[0].time)  # 各デバイスの起動時間を設定する
-        devices[i].set_congestion_status(system_end_time)
+    # d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
+    # devices = pickle.load(d)
+    # devices = devices[0:device_num]
+    #num = len(devices)
+    #print("device_num", num)
+
+    #for i in range(num):
+        #devices[i].startup_time = float(devices[i].plan[0].time)  # 各デバイスの起動時間を設定する
+        #devices[i].set_congestion_status(system_end_time)
 
     # 混雑度計算
-    traffic_congestion(mec, devices, system_end_time)
+    #traffic_congestion(mec, devices, system_end_time)
+    cd = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/congestion_checked_devices.binaryfile','rb')
+    cd = pickle.load(cd)
+    devices = cd
+    num = len(devices)
+    print("device_num", num)
+
     # 混雑度順で毎秒ごとのdevicesをソートする
     sorted_devices = devices_congestion_sort(devices, system_end_time)
     # sorted_devices = pickle.load(sd)
 
 
-    # 各デバイスの起動時間を設定する
-    for t in range(system_end_time):
-        for i in range(num):
-            sorted_devices[t][i].startup_time = int(sorted_devices[t][i].startup_time)
 
+
+    # 各デバイスの起動時間を設定する
+    #for t in range(system_end_time):
+        #for i in range(num):
+            #sorted_devices[t][i].startup_time = int(sorted_devices[t][i].startup_time)
+
+    keep_count = 0
     # save_devices = [] * data_length
     # ---
     # ここからメインの処理
@@ -73,45 +82,49 @@ def continue_nearest_simulation(system_end_time, device_num, continue_distance, 
                 continue
             # plan_indexが稼働時間内なら処理開始
             if check_between_time(sorted_devices[t][i], t) == True:
-                print(sorted_devices[t][i].plan_index)
-                # 継続
-                device_flag, memo = continue_search(sorted_devices[t][i], mec, sorted_devices[t][i].plan_index,
-                                                    cover_range, t, continue_distance)
-
-                # 継続割り当てが失敗したら、最近傍選択
+                print("plan_index", sorted_devices[t][i].plan_index, "max_index", len(sorted_devices[t][i].plan))
+                # 継続割り当て
+                device_flag, allocation_MEC_name = continue_search(sorted_devices[t][i], mec,
+                                                                   sorted_devices[t][i].plan_index, cover_range, t, 500)
+                if device_flag == True:
+                    # 継続回数
+                    keep_count = keep_count + 1
+                    # 最近傍選択
                 if device_flag == False:
-                    device_flag, memo = nearest_search2(sorted_devices[t][i], mec, sorted_devices[t][i].plan_index,
-                                                        cover_range, t)
+                    device_flag, allocation_MEC_name = nearest_search2(sorted_devices[t][i], mec,
+                                                                       sorted_devices[t][i].plan_index, cover_range, t)
                 # 割り当てが成功したら表示する
                 if device_flag == True:
-                    print("device:", sorted_devices[t][i].name, ", use_resource:", sorted_devices[t][i].use_resource,
-                          "--->", "MEC_ID:", mec[memo].name, ", index:", i)
-                    print(sorted_devices[t][i].mec_name, mec[memo].resource)
-                    print(memo, len(save_devices))
+                    # deviceが直前で割り当てたMECを取得
+                    mec_index = search_mec_index(mec, allocation_MEC_name)
+
+                    # print("device:", sorted_devices[t][i].name, ", use_resource:", sorted_devices[t][i].use_resource, "--->", "MEC_ID:", mec[mec_index].name, ", index:", i)
+                    # print(sorted_devices[t][i].mec_name, mec[mec_index].resource)
+                    # print(mec_index, len(save_devices))
                     # ---
-                    # なぜindexがmemoなの？ <- mec用のリストだから
-                    if save_devices[memo] == None:
-                        save_devices[memo] = [sorted_devices[t][i].name]
+                    # なぜindexがmec_indexなの？ <- mec用のリストだから
+                    if save_devices[mec_index] == None:
+                        save_devices[mec_index] = [sorted_devices[t][i].name]
                     else:
-                        save_devices[memo].append(sorted_devices[t][i].name)
-                    # ---
-                    print(t, memo, index)
-                    memo = 0
+                        save_devices[mec_index].append(sorted_devices[t][i].name)
+
+                    mec_index = 0
                 else:
                     print("NOT FIND")
-                    sys.exit()
                 # plan_indexをインクリメント
                 sorted_devices[t][i]._plan_index = sorted_devices[t][i]._plan_index + 1
+            # デバイスの稼働時間を超えた時の処理
             else:
-                # デバイスの稼働時間を超えた時の処理
+                # もしデバイスの終了時間を超えた時のみ（１回だけ）、デバイスに直前に割り当てたMECのリソースをリカバリーする。
                 if sorted_devices[t][i].mec_name != [] and sorted_devices[t][i]._lost_flag == False:
-                    #print("DECREASE")
+                    print("DECREASE")
                     sorted_devices[t][i].set_mode = "decrease"
-                    #print(sorted_devices[t][i].mec_name)
+                    print(sorted_devices[t][i].mec_name)
                     mec[sorted_devices[t][i].mec_name - 1].custom_resource_adjustment(sorted_devices[t][i], t)
                     mec[sorted_devices[t][i].mec_name - 1].save_resource(t)
                     sorted_devices[t][i].set_mode = "add"
                     sorted_devices[t][i]._lost_flag = True
+
         # ある時刻tのMECに一時的に保存していた割り当てたデバイスをコピーする。
         copy_to_mec(mec, save_devices, t)
 

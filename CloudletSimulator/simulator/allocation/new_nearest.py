@@ -262,7 +262,8 @@ def nearest_search2(device:Device, mec:MEC_servers, plan_index, cover_range, tim
 
             device.switch_lost_flag = False
         print("MEC_RESOURCE", mec[ans_id].resource)
-        return True, ans_id
+
+        return True, mec[ans_id].name
     print(device.name)
 # ユーグリット距離
 def distance_calc(lat1, lon1, lat2, lon2):
