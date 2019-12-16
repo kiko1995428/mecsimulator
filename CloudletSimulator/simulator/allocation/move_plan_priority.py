@@ -53,6 +53,7 @@ def move_plan_priority_calc(mecs:MEC_servers, device:Device, plan_index, time, f
             sorted_mecs = adding_mec(mecs, sorted_mecs)
             print(sorted_mecs)
             check_mec_num(sorted_mecs)
+            check_mec_index(sorted_mecs)
             return True, sorted_mecs, sort_finished_index
     else:
         if mecs == []:
@@ -63,6 +64,22 @@ def check_mec_num(mecs:MEC_servers):
     mec_num = len(mecs)
     if mec_num != 548:
         sys.exit()
+
+def check_mec_index(mecs:MEC_servers):
+    mec_num = len(mecs)
+    lost = [False] * mec_num
+    for s in range(mec_num):
+        for m in range(mec_num):
+            if mecs[m].name == s + 1:
+                break
+        if m == mec_num:
+            lost[s] = True
+    if lost.count(True) == 0:
+        return True
+    else:
+        print(lost.count)
+        sys.exit()
+        return False
 
 # ソートしているMEC以外を追加するメソッド
 # MEC全体の数を変えないための処理
@@ -75,6 +92,15 @@ def adding_mec(mecs: MEC_servers, sorted_mecs: MEC_servers):
         for m in range(mec_num):
             # もし同じ名前なら
             if mecs[m].name == sorted_mecs[sm].name:
+                # 同じMECの名前のところにコピー
+                mecs[m] = sorted_mecs[sm]
+                # 入れ替え先のインデックスを取得
+                f_index = search_mec_index(mecs, sorted_mecs[sm].name)
+                # 順番を入れ替え
+                mecs[sm], mecs[f_index] = mecs[f_index], mecs[sm]
+                break
+                """
+                # ここの処理を直す
                 # 同じ名前のインデックスを取得
                 delete_mec_index = search_mec_index(mecs, sorted_mecs[sm].name)
                 # 同じMECを削除(被っているモノを削除)
@@ -84,10 +110,9 @@ def adding_mec(mecs: MEC_servers, sorted_mecs: MEC_servers):
                 # ソートに成功したFLAGを付ける
                 sorted_mecs[sm]._sorted_flag = True
                 break
-    if (548 - sorted_mecs_num) != len(mecs):
-        sys.exit()
+                """
     # 優先度付きMEC群と被ったMECを消したMEC群を組み合わせる
-    mecs = sorted_mecs + mecs
+    #mecs = sorted_mecs + mecs
     if mecs == []:
         print()
     return mecs
@@ -131,7 +156,7 @@ def priority_allocation(mecs:MEC_servers, device:Device, plan_index, time, sort_
     if check_between_time(device, time) == True:
         # 優先度順に割り当てられているMECに割り当て処理
         for m in range(sort_finish_index):
-            if (mecs[m].check_resource(device.use_resource) == True) and (plan_index < len(device.plan)) and mecs[m]._sorted_flag == True:
+            if (mecs[m].check_resource(device.use_resource) == True) and (plan_index < len(device.plan)):
                 device_flag, allocated_mec_id = mode_adjustment2(mecs, m, device, time)
                 print("allocation judge", device_flag, "mec_num", len(mecs))
                 if device_flag == True:
@@ -148,14 +173,12 @@ def mode_adjustment2(mecs:MEC_servers, mec_index, device: Device, time):
         #print("previous", device.mec_name)
 
     if (mecs[mec_index].resource > 0) and ((mecs[mec_index].resource - device.use_resource) >= 0) and plan_index < len(device.plan):
-        #current_distance = distance_calc(float(device.plan[plan_index].y),
-                                         #float(device.plan[plan_index].x), mecs[mec_index].lat, mecs[mec_index].lon)
-        current_id, device_flag = mecs[mec_index].custom_cover_range_search(device, plan_index)
+        current_id = mecs[mec_index].name
 
         print("割り振るMEC_ID", current_id, "前に割り振ったMEC_ID", device.mec_name)
         mec_index = search_mec_index(mecs, current_id)
 
-        if (device_flag == True and current_id == device.mec_name):
+        if (current_id == device.mec_name):
             print("KEEP")
             # デバイスをkeepモードにセット
             device.set_mode = "keep"
@@ -179,7 +202,7 @@ def mode_adjustment2(mecs:MEC_servers, mec_index, device: Device, time):
 
             return True, current_id
         # 切替&切替先を見つけている時
-        elif device_flag == True and current_id != device.mec_name and check_add_device(device, time) == False and device.mec_name != [] and device.mec_name is not None:
+        elif current_id != device.mec_name and check_add_device(device, time) == False and device.mec_name != [] and device.mec_name is not None:
             # リソースを増やす
             previous_index = search_mec_index(mecs, device.mec_name)
             print("DECREASE(main)")
@@ -210,7 +233,7 @@ def mode_adjustment2(mecs:MEC_servers, mec_index, device: Device, time):
             return True, current_id
 
         # 新規割り当て
-        elif device_flag == True and current_id != device.mec_name and check_add_device(device, time) == True and device._first_flag == True:
+        elif current_id != device.mec_name and check_add_device(device, time) == True and device._first_flag == True:
             print("ADD")
             device.set_mode = "add"
             device.mec_name = mecs[mec_index].name
@@ -224,7 +247,7 @@ def mode_adjustment2(mecs:MEC_servers, mec_index, device: Device, time):
             current_id = mecs[mec_index].name
 
             return True, current_id
-
+    print("mode_adjust_flag", device_flag)
     return False, 1
 
 def cover_range_search(mecs:MEC_servers, mec_index, device: Device, time):

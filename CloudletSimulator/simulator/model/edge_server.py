@@ -361,12 +361,15 @@ class MEC_server:
         if (self.resource > 0) or ((self.resource - device.use_resource) >= 0):
             distance = distance_calc(float(device.plan[plan_index].y),
                                      float(device.plan[plan_index].x), self.lat, self.lon)
-            if distance <= self.range:
-                mec_name = int(self.name)
-                #print(memo, distance)
-                return mec_name, True
-
+            #if distance <= self.range:
+            mec_name = int(self.name)
+            #print(memo, distance)
+            return mec_name, True
         return 1, False
+
+
+
+
 
     def continue_allocation(self, nearest_range, device: Device, plan_index):
         memo = 0
