@@ -9,6 +9,8 @@ import collections
 
 # 移動経路優先度計算
 def move_plan_priority_calc(mecs:MEC_servers, device:Device, plan_index, time, f_time, continue_distance):
+    hoge_hoge = mecs
+    len_hoge = len(hoge_hoge)
     # sorted_flagをリセット
     mecs = reset_sorted_mec(mecs)
     # 予測時間の時に探索が終わっていないかどうか
@@ -50,18 +52,28 @@ def move_plan_priority_calc(mecs:MEC_servers, device:Device, plan_index, time, f
             # ソートしていないMECを追加する。
             sorted_mecs = adding_mec(mecs, sorted_mecs)
             print(sorted_mecs)
+            check_mec_num(sorted_mecs)
             return True, sorted_mecs, sort_finished_index
     else:
+        if mecs == []:
+            print()
         return False, mecs, 0
+
+def check_mec_num(mecs:MEC_servers):
+    mec_num = len(mecs)
+    if mec_num != 548:
+        sys.exit()
 
 # ソートしているMEC以外を追加するメソッド
 # MEC全体の数を変えないための処理
 def adding_mec(mecs: MEC_servers, sorted_mecs: MEC_servers):
     mec_num = len(mecs)
+    if mec_num == 528:
+        sys.exit()
     sorted_mecs_num = len(sorted_mecs)
     for sm in range(sorted_mecs_num):
         for m in range(mec_num):
-            # もし同じ名前ならMECの先頭からコピー
+            # もし同じ名前なら
             if mecs[m].name == sorted_mecs[sm].name:
                 # 同じ名前のインデックスを取得
                 delete_mec_index = search_mec_index(mecs, sorted_mecs[sm].name)
@@ -72,8 +84,12 @@ def adding_mec(mecs: MEC_servers, sorted_mecs: MEC_servers):
                 # ソートに成功したFLAGを付ける
                 sorted_mecs[sm]._sorted_flag = True
                 break
+    if (548 - sorted_mecs_num) != len(mecs):
+        sys.exit()
     # 優先度付きMEC群と被ったMECを消したMEC群を組み合わせる
     mecs = sorted_mecs + mecs
+    if mecs == []:
+        print()
     return mecs
 
 # MECの並びをリセットするメソッド
@@ -117,11 +133,12 @@ def priority_allocation(mecs:MEC_servers, device:Device, plan_index, time, sort_
         for m in range(sort_finish_index):
             if (mecs[m].check_resource(device.use_resource) == True) and (plan_index < len(device.plan)) and mecs[m]._sorted_flag == True:
                 device_flag, allocated_mec_id = mode_adjustment2(mecs, m, device, time)
-                print(device_flag)
+                print("allocation judge", device_flag, "mec_num", len(mecs))
                 if device_flag == True:
                     return True, allocated_mec_id
     #print(device_flag)
     # 割り当て失敗した場合
+    print("failed priority allocation")
     return False, allocated_mec_id
 
 def mode_adjustment2(mecs:MEC_servers, mec_index, device: Device, time):
