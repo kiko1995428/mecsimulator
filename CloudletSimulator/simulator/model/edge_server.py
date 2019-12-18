@@ -694,4 +694,12 @@ def monitoring_resource(mecs:MEC_servers, MEC_resource, used_resource,time):
     for m in range(mec_num):
         if (MEC_resource - (mecs[m]._having_devices[time] * used_resource)) != mecs[m]._resource_per_second[time]:
             sys.exit()
-
+"""
+def hop_calc(mecs:MEC_servers, devices:Devices, time):
+    device_num = len(devices)
+    mec_num = len(mecs)
+    aggregation_map = [0 * ]* device_num
+    for d in range(device_num):
+        for t in range(t):
+            devices[d]._allocation_plan[t]._aggregation_staion
+"""

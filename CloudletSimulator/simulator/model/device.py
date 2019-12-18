@@ -63,6 +63,7 @@ class Device:
         self._hop = None
         self._first_flag = True
         self._aggregation_name = None
+        self._allocation_plan = None
 
     @property
     def name(self) -> str:
@@ -159,6 +160,7 @@ class Device:
             self._hop_count = self._hop_count + 2 #切替（割り振り前）
         else:
             self._hop_count = self._hop_count
+
     @property
     def hop(self):
         return self._hop

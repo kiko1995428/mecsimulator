@@ -1,6 +1,6 @@
 from CloudletSimulator.simulator.model.edge_server import MEC_servers, check_add_device,MEC_server, check_between_time, check_plan_index
 from CloudletSimulator.simulator.model.device import Device
-from CloudletSimulator.simulator.model.hop_calc import hop_calc, keep_hop
+from CloudletSimulator.simulator.model.hop_calc import hop_calc,keep_hop
 from geopy.distance import vincenty
 import math
 from math import radians, cos, sin, asin, sqrt, atan2
@@ -58,6 +58,7 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 mec[ans_id].custom_resource_adjustment(device, time)
                 print("KEEP", plan_index)
                 device.mec_name = mec[ans_id].name
+                device._allocation_plan[time] = mec[ans_id]
 
                 mec[ans_id].add_having_device(time)
                 mec[ans_id].save_resource(time)
@@ -65,6 +66,7 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
 
                 # 追加項目
                 keep_hop(device)
+                #hop_calc(device, mec, ans_id, time)
                 print(mec[ans_id].aggregation_station)
                 device._aggregation_name = mec[ans_id].aggregation_station
                 mec[ans_id].add_allocation_count(time)
@@ -84,8 +86,8 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 # リソースを減らす
                 device.set_mode = "add"
                 mec[ans_id].custom_resource_adjustment(device, time)
-                device.add_hop_count()
                 device.mec_name = mec[ans_id].name
+                device._allocation_plan[time] = mec[ans_id]
 
                 # 新規追加
                 hop_calc(device, mec[ans_id], time)
@@ -98,11 +100,12 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 # リソースを減らす
                 device.set_mode = "add"
                 mec[ans_id].custom_resource_adjustment(device, time)
-                device.add_hop_count()
 
                 device.mec_name = mec[ans_id].name
+                device._allocation_plan[time] = mec[ans_id]
 
                 # 新規追加
+                #hop_calc(device, mec, ans_id, time)
                 hop_calc(device, mec[ans_id], time)
                 device._aggregation_name = mec[ans_id].aggregation_station
 
@@ -120,7 +123,7 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
                 print("DECREASE")
                 mec[device.mec_name - 1].custom_resource_adjustment(device, time)
                 mec[device.mec_name - 1].save_resource(time)
-                device.add_hop_count()
+                #device.add_hop_count()
                 device.set_mode = "add"
             device.switch_lost_flag = True
             device._lost_flag = True
@@ -133,7 +136,7 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
             device.set_mode = "decrease"
             print("DECREASE")
             mec[device.mec_name - 1].custom_resource_adjustment(device, time)
-            device.add_hop_count()
+            #device.add_hop_count()
             mec[device.mec_name - 1].save_resource(time)
             device.set_mode = "add"
 
@@ -191,14 +194,6 @@ def nearest_search2(device:Device, mec:MEC_servers, plan_index, cover_range, tim
     #print(device.mec_name)
     #ans_id = mec[ans_id].name
     print(mec[ans_id].name, device.mec_name, device.lost_flag)
-
-    if mec[ans_id].resource == 0:
-        for m in range(data):
-            if mec[m].resource > 0:
-                print(mec[m].name)
-        print(device.name)
-        print(1)
-
     if mec[ans_id].resource > 0:
         #継続割り当ての時
         if mec[ans_id].name == device.mec_name:
@@ -287,5 +282,6 @@ def distance_calc(lat1, lon1, lat2, lon2):
     val = sin(dLat / 2) * sin(dLat / 2) + sin(dLot / 2) * sin(dLot / 2) * cos(lat1) * cos(lat2)
     ang = 2 * atan2(sqrt(val), sqrt(1 - val))
     return radius * ang  # meter
+
 
 

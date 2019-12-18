@@ -24,8 +24,10 @@ def hop_calc(device:Device, mec: MEC_server, time):
     # 切替成功
     else:
         mec.add_reboot_count(time)
+        # 集約局が同一の時
         if mec_compare(device, mec) == False:
             device._hop.append(3)
+        # 集約曲が違う時
         else:
             device._hop.append(5)
 

@@ -11,11 +11,10 @@ import pandas as pd
 import pickle
 import sys
 
-def continue_nearest_simulation(system_end_time, device_num, continue_distance,  path_w):
+def continue_nearest_simulation(system_end_time, MEC_resource, device_num, continue_distance, device_allocation_method, path_w):
     df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
                      dtype={'lon': 'float', 'lat': 'float'})
     server_type = "LTE"
-    MEC_resource = 100
     cover_range = 500
     n = len(df)
     print("Number of MEC server:", n)
@@ -23,48 +22,52 @@ def continue_nearest_simulation(system_end_time, device_num, continue_distance, 
     for index, series in df.iterrows():
         mec[index] = MEC_server(MEC_resource, index + 1, server_type, series["lon"], series["lat"],
                                 cover_range, system_end_time)
-
     mec_num = len(df)
-    print("MECs", mec_num)
-    mec = [MEC_server(0, 00, " ", 00.00, 00.00, 0, 0)] * n
-    for index, series in df.iterrows():
-        mec[index] = MEC_server(MEC_resource, index + 1, server_type, series["lon"], series["lat"],
-                                cover_range, system_end_time)
 
     # 集約局を対応するMECに設定する
     set_aggregation_station(mec)
 
-    # ---
-    # デバイスの準備
-    # d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
-    # devices = pickle.load(d)
-    # devices = devices[0:device_num]
-    #num = len(devices)
-    #print("device_num", num)
+    # 到着順
+    if device_allocation_method == 0:
+        d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
+        devices = pickle.load(d)
+        devices = devices[0:device_num]
+        num = len(devices)
+        for i in range(num):
+            devices[i].startup_time = float(devices[i].plan[0].time)  # 各デバイスの起動時間を設定する
+            devices[i].set_congestion_status(system_end_time)
+            devices[i].set_MEC_distance(len(df))
+            devices[i]._first_flag = True
+            devices[i]._allocation_plan = [None] * system_end_time
 
-    #for i in range(num):
-        #devices[i].startup_time = float(devices[i].plan[0].time)  # 各デバイスの起動時間を設定する
-        #devices[i].set_congestion_status(system_end_time)
+        sorted_devices = [devices] * system_end_time
+    # リソース順
+    elif device_allocation_method == 1:
+        d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
+        devices = pickle.load(d)
+        devices = devices[0:device_num]
+        num = len(devices)
+        devices = reverse_resource_sort(devices)
+        for i in range(num):
+            devices[i].startup_time = float(devices[i].plan[0].time)  # 各デバイスの起動時間を設定する
+            devices[i].set_congestion_status(system_end_time)
+            devices[i].set_MEC_distance(len(df))
+            devices[i]._first_flag = True
+        sorted_devices = [devices] * system_end_time
+    # 混雑度順
+    else:
+        # 混雑度計算
+        # traffic_congestion(mec, devices, system_end_time, 1000)
+        cd = open(
+            '/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/congestion_checked_devices.binaryfile',
+            'rb')
+        cd = pickle.load(cd)
+        devices = cd
+        num = len(devices)
+        print("device_num", num)
 
-    # 混雑度計算
-    #traffic_congestion(mec, devices, system_end_time)
-    cd = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/congestion_checked_devices.binaryfile','rb')
-    cd = pickle.load(cd)
-    devices = cd
-    num = len(devices)
-    print("device_num", num)
-
-    # 混雑度順で毎秒ごとのdevicesをソートする
-    sorted_devices = devices_congestion_sort(devices, system_end_time)
-    # sorted_devices = pickle.load(sd)
-
-
-
-
-    # 各デバイスの起動時間を設定する
-    #for t in range(system_end_time):
-        #for i in range(num):
-            #sorted_devices[t][i].startup_time = int(sorted_devices[t][i].startup_time)
+        # 混雑度順で毎秒ごとのdevicesをソートする
+        sorted_devices = devices_congestion_sort(devices, system_end_time)
 
     keep_count = 0
     # save_devices = [] * data_length
@@ -85,7 +88,7 @@ def continue_nearest_simulation(system_end_time, device_num, continue_distance, 
                 print("plan_index", sorted_devices[t][i].plan_index, "max_index", len(sorted_devices[t][i].plan))
                 # 継続割り当て
                 device_flag, allocation_MEC_name = continue_search(sorted_devices[t][i], mec,
-                                                                   sorted_devices[t][i].plan_index, cover_range, t, 500)
+                                                                   sorted_devices[t][i].plan_index, cover_range, t, continue_distance)
                 if device_flag == True:
                     # 継続回数
                     keep_count = keep_count + 1

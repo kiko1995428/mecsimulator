@@ -7,17 +7,16 @@ from CloudletSimulator.simulator.allocation.new_congestion import traffic_conges
 from CloudletSimulator.simulator.convenient_function.write_csv import write_csv
 from CloudletSimulator.simulator.allocation.new_nearest import nearest_search, nearest_search2
 from CloudletSimulator.simulator.model.aggregation_station import set_aggregation_station
-from CloudletSimulator.simulator.allocation.move_plan_priority import search_mec_index
+from CloudletSimulator.simulator.allocation.reverse_resource import reverse_resource_sort
 import pandas as pd
 import pickle
 
-def nearest_simulation(system_end_time, device_num, path_w):
+def nearest_simulation(system_end_time, MEC_resource, device_num, device_allocation_method, path_w):
     # ---
     # MECの準備
     df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
                      dtype={'lon': 'float', 'lat': 'float'})
     server_type = "LTE"
-    MEC_resource = 100
     cover_range = 500
     n = len(df)
     print("Number of MEC server:", n)
@@ -36,37 +35,45 @@ def nearest_simulation(system_end_time, device_num, path_w):
     # 集約局を対応するMECに設定する
     set_aggregation_station(mec)
 
-    # ---
-    # デバイスの準備
-    """
-    d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
-    devices = pickle.load(d)
-    devices = devices[0:device_num]
-    num = len(devices)
-    print("device_num", num)
+    # 到着順
+    if device_allocation_method == 0:
+        d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
+        devices = pickle.load(d)
+        devices = devices[0:device_num]
+        num = len(devices)
+        for i in range(num):
+            devices[i].startup_time = float(devices[i].plan[0].time)  # 各デバイスの起動時間を設定する
+            devices[i].set_congestion_status(system_end_time)
+            devices[i].set_MEC_distance(len(df))
+            devices[i]._first_flag = True
+            devices[i]._allocation_plan = [None] * system_end_time
 
-    for i in range(num):
-        devices[i].startup_time = float(devices[i].plan[0].time)  # 各デバイスの起動時間を設定する
-        devices[i].set_congestion_status(system_end_time)
-        
-    """
+        sorted_devices = [devices] * system_end_time
+    # リソース順
+    elif device_allocation_method == 1:
+        d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
+        devices = pickle.load(d)
+        devices = devices[0:device_num]
+        num = len(devices)
+        devices = reverse_resource_sort(devices)
+        for i in range(num):
+            devices[i].startup_time = float(devices[i].plan[0].time)  # 各デバイスの起動時間を設定する
+            devices[i].set_congestion_status(system_end_time)
+            devices[i].set_MEC_distance(len(df))
+            devices[i]._first_flag = True
+        sorted_devices = [devices] * system_end_time
+    # 混雑度順
+    else:
+        # 混雑度計算
+        # traffic_congestion(mec, devices, system_end_time, 1000)
+        cd = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/congestion_checked_devices.binaryfile', 'rb')
+        cd = pickle.load(cd)
+        devices = cd
+        num = len(devices)
+        print("device_num", num)
 
-    # 混雑度計算
-    # traffic_congestion(mec, devices, system_end_time)
-
-    cd = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/congestion_checked_devices.binaryfile','rb')
-    cd = pickle.load(cd)
-    devices = cd
-    num = len(devices)
-    print("device_num", num)
-
-    # 混雑度順で毎秒ごとのdevicesをソートする
-    sorted_devices = devices_congestion_sort(devices, system_end_time)
-
-    # 各デバイスの起動時間を設定する
-    #for t in range(system_end_time):
-        #for i in range(num):
-            #sorted_devices[t][i].startup_time = int(sorted_devices[t][i].startup_time)
+        # 混雑度順で毎秒ごとのdevicesをソートする
+        sorted_devices = devices_congestion_sort(devices, system_end_time)
 
     # ---
     # ここからメインの処理
@@ -177,3 +184,11 @@ def nearest_simulation(system_end_time, device_num, path_w):
     result.append(reboot_rate)
     # 結果をcsvへ書き込み
     write_csv(path_w, result)
+
+# 見つけたいMECの名前からMECを見つけてMECのインデックスを返すメソッド
+def search_mec_index(mecs:MEC_servers, mec_name):
+    mec_num = len(mecs)
+    for m in range(mec_num):
+        if mecs[m].name == mec_name:
+            return m
+    return None

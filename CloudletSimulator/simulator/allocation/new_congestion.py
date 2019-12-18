@@ -8,19 +8,20 @@ from typing import List
 #sorted_device = [Devices]
 #sorted_devices = [Devices] * system_time
 
-def traffic_congestion(mecs:MEC_servers, devices: Devices, system_time):
+def traffic_congestion(mecs:MEC_servers, devices: Devices, system_time, seach_distance):
     data_length = len(mecs)
     for t in range (system_time):
         print("time:", t, ", ", t/system_time*100, "%")
         for m in range (data_length):
-            traffic_congestion_calc(mecs[m], devices, t)
+            traffic_congestion_calc(mecs[m], devices, t, seach_distance)
     #devices_congestion_sort(devices, system_time)
 
-def traffic_congestion_calc(mec:MEC_server, devices: Devices, time):
+def traffic_congestion_calc(mec:MEC_server, devices: Devices, time , search_distance):
     """
     あるMECのカバー範囲内の要求リソース量の総和を求める計算（混雑度）
     :param device: デバイス
     :param time: システムのある時間t
+    :param search_distance: 加算距離
     :return ある時刻tのときのMECのカバー範囲内の要求リソース量の総和
     """
     cnt = 0
@@ -36,7 +37,7 @@ def traffic_congestion_calc(mec:MEC_server, devices: Devices, time):
             if index < (shutdown - startup):
                 distance = distance_calc(float(devices[i].plan[index].y), float(devices[i].plan[index].x), mec.lat,
                                          mec.lon)
-                if distance <= (mec.range * 2):
+                if distance <= (search_distance):
                     if save[0] is None:
                         save[0] = i
                     else:

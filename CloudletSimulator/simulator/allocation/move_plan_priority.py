@@ -1,7 +1,6 @@
 from CloudletSimulator.simulator.model.edge_server import MEC_servers, check_add_device, check_between_time
 from CloudletSimulator.simulator.model.device import Device
 from CloudletSimulator.simulator.model.hop_calc import hop_calc, keep_hop
-from geopy.distance import vincenty
 import math
 from math import radians, cos, sin, asin, sqrt, atan2
 import sys
@@ -20,7 +19,8 @@ def move_plan_priority_calc(mecs:MEC_servers, device:Device, plan_index, time, f
     mec_set = collections.namedtuple("mec_set", ("ID", "way"))
     # 各MECサーバとの距離を計算
     for m in range(mec_num):
-        disntace = distance_calc(float(device.plan[plan_index + f_time].y), float(device.plan[plan_index + f_time].x), mecs[m].lat, mecs[m].lon)
+        print(device.plan_index, f_time, len(device.plan))
+        disntace = distance_calc(float(device.plan[plan_index + int(f_time)].y), float(device.plan[plan_index + int(f_time)].x), mecs[m].lat, mecs[m].lon)
        # 継続割り当ての距離以内にいるサーバを調べる
         if disntace <= continue_distance:
            #found_judge = True
@@ -48,16 +48,13 @@ def move_plan_priority_calc(mecs:MEC_servers, device:Device, plan_index, time, f
             # ソートしたデータの長さを取得
             # ループ短縮用
             sort_finished_index = len(sorted_mecs)
-
             # ソートしていないMECを追加する。
             sorted_mecs = adding_mec(mecs, sorted_mecs)
             print(sorted_mecs)
-            check_mec_num(sorted_mecs)
-            check_mec_index(sorted_mecs)
+            #check_mec_num(sorted_mecs)
+            #check_mec_index(sorted_mecs)
             return True, sorted_mecs, sort_finished_index
     else:
-        if mecs == []:
-            print()
         return False, mecs, 0
 
 def check_mec_num(mecs:MEC_servers):
@@ -85,8 +82,6 @@ def check_mec_index(mecs:MEC_servers):
 # MEC全体の数を変えないための処理
 def adding_mec(mecs: MEC_servers, sorted_mecs: MEC_servers):
     mec_num = len(mecs)
-    if mec_num == 528:
-        sys.exit()
     sorted_mecs_num = len(sorted_mecs)
     for sm in range(sorted_mecs_num):
         for m in range(mec_num):
@@ -94,27 +89,12 @@ def adding_mec(mecs: MEC_servers, sorted_mecs: MEC_servers):
             if mecs[m].name == sorted_mecs[sm].name:
                 # 同じMECの名前のところにコピー
                 mecs[m] = sorted_mecs[sm]
+                #mecs[m]._sorted_flag = True
                 # 入れ替え先のインデックスを取得
                 f_index = search_mec_index(mecs, sorted_mecs[sm].name)
                 # 順番を入れ替え
                 mecs[sm], mecs[f_index] = mecs[f_index], mecs[sm]
                 break
-                """
-                # ここの処理を直す
-                # 同じ名前のインデックスを取得
-                delete_mec_index = search_mec_index(mecs, sorted_mecs[sm].name)
-                # 同じMECを削除(被っているモノを削除)
-                del mecs[delete_mec_index]
-                # 優先度付きのMECを先頭から格納していく
-                #mecs[sm] = sorted_mecs[sm]
-                # ソートに成功したFLAGを付ける
-                sorted_mecs[sm]._sorted_flag = True
-                break
-                """
-    # 優先度付きMEC群と被ったMECを消したMEC群を組み合わせる
-    #mecs = sorted_mecs + mecs
-    if mecs == []:
-        print()
     return mecs
 
 # MECの並びをリセットするメソッド
@@ -156,8 +136,8 @@ def priority_allocation(mecs:MEC_servers, device:Device, plan_index, time, sort_
     if check_between_time(device, time) == True:
         # 優先度順に割り当てられているMECに割り当て処理
         for m in range(sort_finish_index):
-            if (mecs[m].check_resource(device.use_resource) == True) and (plan_index < len(device.plan)):
-                device_flag, allocated_mec_id = mode_adjustment2(mecs, m, device, time)
+            if (mecs[m].check_resource(device.use_resource) == True) and (mecs[m].resource > 0) and (plan_index < len(device.plan)):
+                device_flag, allocated_mec_id = mode_adjustment(mecs, m, device, time)
                 print("allocation judge", device_flag, "mec_num", len(mecs))
                 if device_flag == True:
                     return True, allocated_mec_id
@@ -166,140 +146,87 @@ def priority_allocation(mecs:MEC_servers, device:Device, plan_index, time, sort_
     print("failed priority allocation")
     return False, allocated_mec_id
 
-def mode_adjustment2(mecs:MEC_servers, mec_index, device: Device, time):
-    plan_index = device.plan_index
-    previous_index = mec_index_search(mecs, device)
-    #if previous_index is None:
-        #print("previous", device.mec_name)
+def mode_adjustment(mecs:MEC_servers, mec_index, device: Device, time):
+    #plan_index = device.plan_index
+    #previous_index = mec_index_search(mecs, device)
+    current_id = mecs[mec_index].name
+    print("割り振るMEC_ID", current_id, "前に割り振ったMEC_ID", device.mec_name)
+    mec_index = search_mec_index(mecs, current_id)
 
-    if (mecs[mec_index].resource > 0) and ((mecs[mec_index].resource - device.use_resource) >= 0) and plan_index < len(device.plan):
+    if (current_id == device.mec_name):
+        print("KEEP")
+        # デバイスをkeepモードにセット
+        device.set_mode = "keep"
+        # デバイスに割り振るMECの名前を保存
+        device.mec_name = mecs[mec_index].name
+        # MECに割り当てられたデバイスを追加
+        mecs[mec_index].add_having_device(time)
+        # MECのリソースを保存
+        mecs[mec_index].save_resource(time)
+        device.switch_lost_flag = False
+        # 割り当てるMECを保存
+        current_id = mecs[mec_index].name
+        # ホップ数加算
+        #hop_calc(device, mecs, mec_index, time)
+        keep_hop(device)
+        # 割り当て先のMECの管理する集約局を保存
+        device._aggregation_name = mecs[mec_index].aggregation_station
+        # 割り当て回数を加算
+        mecs[mec_index].add_allocation_count(time)
+        # keep処理の回数を加算
+        mecs[mec_index]._keep_count = mecs[mec_index]._keep_count + 1
+
+        return True, current_id
+    # 切替&切替先を見つけている時
+    elif current_id != device.mec_name and check_add_device(device, time) == False and device.mec_name != [] and device.mec_name is not None:
+        # リソースを増やす
+        previous_index = search_mec_index(mecs, device.mec_name)
+        print("DECREASE(main)")
+        device.set_mode = "decrease"
+        print(previous_index, device.mec_name)
+        print("増やす前のMECのID", device.mec_name, mecs[previous_index].name)
+        print("増やす前のリソース", mecs[previous_index].resource)
+        #print(previous_index)
+        mecs[previous_index].custom_resource_adjustment(device, time)
+        mecs[previous_index].save_resource(time)
+
+        print("ADD")
+        print("減らす前のID", mecs[mec_index].name)
+        print("減らす前のリソース", mecs[mec_index].resource)
+        print(mec_index, previous_index)
+        device.set_mode = "add"
+        device.mec_name = mecs[mec_index].name
+
+        mecs[mec_index].add_having_device(time)
+        mecs[mec_index].custom_resource_adjustment(device, time)
+        mecs[mec_index].save_resource(time)
+        print("減らした後のリソース", mecs[previous_index].resource)
+        device.switch_lost_flag = False
         current_id = mecs[mec_index].name
 
-        print("割り振るMEC_ID", current_id, "前に割り振ったMEC_ID", device.mec_name)
-        mec_index = search_mec_index(mecs, current_id)
+        # 新規追加
+        hop_calc(device, mecs[mec_index], time)
+        device._aggregation_name = mecs[mec_index].aggregation_station
+        return True, current_id
 
-        if (current_id == device.mec_name):
-            print("KEEP")
-            # デバイスをkeepモードにセット
-            device.set_mode = "keep"
-            # デバイスに割り振るMECの名前を保存
-            device.mec_name = mecs[mec_index].name
-            # MECに割り当てられたデバイスを追加
-            mecs[mec_index].add_having_device(time)
-            # MECのリソースを保存
-            mecs[mec_index].save_resource(time)
-            device.switch_lost_flag = False
-            # 割り当てるMECを保存
-            current_id = mecs[mec_index].name
-            # ホップ数加算
-            keep_hop(device)
-            # 割り当て先のMECの管理する集約局を保存
-            device._aggregation_name = mecs[mec_index].aggregation_station
-            # 割り当て回数を加算
-            mecs[mec_index].add_allocation_count(time)
-            # keep処理の回数を加算
-            mecs[mec_index]._keep_count = mecs[mec_index]._keep_count + 1
-
-            return True, current_id
-        # 切替&切替先を見つけている時
-        elif current_id != device.mec_name and check_add_device(device, time) == False and device.mec_name != [] and device.mec_name is not None:
-            # リソースを増やす
-            previous_index = search_mec_index(mecs, device.mec_name)
-            print("DECREASE(main)")
-            device.set_mode = "decrease"
-            print(previous_index, device.mec_name)
-            print("増やす前のMECのID", device.mec_name, mecs[previous_index].name)
-            print("増やす前のリソース", mecs[previous_index].resource)
-            #print(previous_index)
-            mecs[previous_index].custom_resource_adjustment(device, time)
-            mecs[previous_index].save_resource(time)
-
-            print("ADD")
-            print("減らす前のID", mecs[mec_index].name)
-            print("減らす前のリソース", mecs[mec_index].resource)
-            print(mec_index, previous_index)
-            device.set_mode = "add"
-            device.mec_name = mecs[mec_index].name
-            mecs[mec_index].add_having_device(time)
-            mecs[mec_index].custom_resource_adjustment(device, time)
-            mecs[mec_index].save_resource(time)
-            print("減らした後のリソース", mecs[previous_index].resource)
-            device.switch_lost_flag = False
-            current_id = mecs[mec_index].name
-
-            # 新規追加
-            hop_calc(device, mecs[mec_index], time)
-            device._aggregation_name = mecs[mec_index].aggregation_station
-            return True, current_id
-
-        # 新規割り当て
-        elif current_id != device.mec_name and check_add_device(device, time) == True and device._first_flag == True:
-            print("ADD")
-            device.set_mode = "add"
-            device.mec_name = mecs[mec_index].name
-            mecs[mec_index].add_having_device(time)
-            # 新規追加
-            hop_calc(device, mecs[mec_index], time)
-            device._aggregation_name = mecs[mec_index].aggregation_station
-            mecs[mec_index].custom_resource_adjustment(device, time)
-            mecs[mec_index].save_resource(time)
-            device.switch_lost_flag = False
-            current_id = mecs[mec_index].name
-
-            return True, current_id
-    print("mode_adjust_flag", device_flag)
-    return False, 1
-
-def cover_range_search(mecs:MEC_servers, mec_index, device: Device, time):
-    memo = 0
-    plan_index = device.plan_index
-    if (mecs[mec_index].resource > 0) and ((mecs[mec_index].resource - device.use_resource) >= 0):
-        distance = distance_calc(float(device.plan[plan_index].y),
-                                 float(device.plan[plan_index].x), mecs[mec_index].lat, mecs[mec_index].lon)
-        #if distance <= mecs[mec_index].range:
-        memo = mec_index
-        # リソースを減らす
-        device.add_hop_count()
+    # 新規割り当て
+    #elif current_id != device.mec_name and check_add_device(device, time) == True and device._first_flag == True:
+    else:
+        print("ADD")
+        device.set_mode = "add"
         device.mec_name = mecs[mec_index].name
         mecs[mec_index].add_having_device(time)
-        #if device._lost_flag == True and device.startup_time != time:
-            #mecs[mec_index].add_reboot_count(time)
-        # リソース割り当て
-        #print("MEC_ID", mecs[mec_index].name)
+        # 新規追加
+        hop_calc(device, mecs[mec_index], time)
+        device._aggregation_name = mecs[mec_index].aggregation_station
         mecs[mec_index].custom_resource_adjustment(device, time)
         mecs[mec_index].save_resource(time)
         device.switch_lost_flag = False
-        return True, memo
-    return False, memo
-"""
-        elif mecs[mec_index].name != None and device._lost_flag == False:
-            print("-------------")
-            device.set_mode = "decrease"
-            print("DECREASE")
-            mecs[device.mec_name - 1].custom_resource_adjustment(device, time)
-            mecs[device.mec_name - 1].save_resource(time)
-            device.add_hop_count() 
-            device.set_mode = "add"
-            device.switch_lost_flag = True
-            device._lost_flag = True
-            device.mec_name = None
-            return False, memo
-    # lostした時リソースを増やす
-    if device._lost_flag == False:
-        print("+++++++++++++")
-        device.set_mode = "decrease"
-        print("DECREASE")
-        mecs[device.mec_name - 1].custom_resource_adjustment(device, time)
-        device.add_hop_count()
-        mecs[device.mec_name - 1].save_resource(time)
-        device.set_mode = "add"
-"""
+        current_id = mecs[mec_index].name
 
-    #device.switch_lost_flag = True
-    #device._lost_flag = True
-    #device.mec_name = None
-    #return False, memo
+        return True, current_id
 
+    return False, 1
 
 # ユーグリット距離
 def distance_calc(lat1, lon1, lat2, lon2):
