@@ -2,7 +2,7 @@
 # まず、make_binanary.pyでバイナリーファイルを作成し、このプログラムを実行する
 
 from CloudletSimulator.simulator.model.edge_server import MEC_server, MEC_servers, check_between_time, check_plan_index, check_allocation, copy_to_mec, application_reboot_rate
-from CloudletSimulator.simulator.model.device import max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc
+from CloudletSimulator.simulator.model.device import max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc, max_distance_search, min_distance_search
 from CloudletSimulator.simulator.allocation.new_congestion import traffic_congestion, devices_congestion_sort
 from CloudletSimulator.simulator.convenient_function.write_csv import write_csv
 from CloudletSimulator.simulator.allocation.new_nearest import nearest_search, nearest_search2
@@ -37,7 +37,7 @@ def nearest_simulation(system_end_time, MEC_resource, device_num, device_allocat
 
     # 到着順
     if device_allocation_method == 0:
-        d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
+        d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile_500', 'rb')
         devices = pickle.load(d)
         devices = devices[0:device_num]
         num = len(devices)
@@ -51,7 +51,7 @@ def nearest_simulation(system_end_time, MEC_resource, device_num, device_allocat
         sorted_devices = [devices] * system_end_time
     # リソース順
     elif device_allocation_method == 1:
-        d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
+        d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile_500', 'rb')
         devices = pickle.load(d)
         devices = devices[0:device_num]
         num = len(devices)
@@ -168,9 +168,10 @@ def nearest_simulation(system_end_time, MEC_resource, device_num, device_allocat
     print("average_hop: ", average_hop)
     reboot_rate = application_reboot_rate(mec, system_end_time)
     print("AP reboot rate:", reboot_rate)
-
-    device_num = len(sorted_devices[-1])
-    devices = sorted_devices[-1]
+    max_distance = max_distance_search(sorted_devices[-1])
+    print("max_distance:", max_distance)
+    min_distance = min_distance_search(sorted_devices[-1])
+    print("min_distance:", min_distance)
 
     # for d in range(device_num):
     # print(devices[d].hop)
@@ -182,8 +183,12 @@ def nearest_simulation(system_end_time, MEC_resource, device_num, device_allocat
     result.append(minimum)
     result.append(average_hop)
     result.append(reboot_rate)
+    result.append(max_distance)
+    result.append(min_distance)
+
     # 結果をcsvへ書き込み
     write_csv(path_w, result)
+    return average_hop, reboot_rate
 
 # 見つけたいMECの名前からMECを見つけてMECのインデックスを返すメソッド
 def search_mec_index(mecs:MEC_servers, mec_name):

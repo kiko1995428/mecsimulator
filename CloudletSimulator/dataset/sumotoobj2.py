@@ -41,7 +41,7 @@ with open('Kuruma.csv', newline='') as csvfile:
 			#d.use_resource = 1
 			d._system_time = 500
 			d.set_congestion_status(500)
-			d.use_resource = random.randint(1, 3)
+			d.use_resource = random.randint(1, 5)
 			devices.append(d)
 			num += 1
 	f = open('device.binaryfile_500', 'wb')

@@ -2,7 +2,7 @@
 # まず、make_binanary.pyでバイナリーファイルを作成し、このプログラムを実行する
 
 from CloudletSimulator.simulator.model.edge_server import MEC_server, MEC_servers, check_between_time, check_plan_index, check_allocation, copy_to_mec, application_reboot_rate
-from CloudletSimulator.simulator.model.device import max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc
+from CloudletSimulator.simulator.model.device import max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc, max_distance_search, min_distance_search
 from CloudletSimulator.simulator.allocation.new_congestion import traffic_congestion, devices_congestion_sort
 from CloudletSimulator.simulator.allocation.new_continue import continue_search
 from CloudletSimulator.simulator.convenient_function.write_csv import write_csv
@@ -243,6 +243,10 @@ def continue_priority_simulation(system_end_time, MEC_resource, device_num, cont
     reboot_rate = application_reboot_rate(mec, system_end_time)
     print("AP reboot rate:", reboot_rate)
     print("continue_count", keep_count)
+    max_distance = max_distance_search(sorted_devices[-1])
+    print("max_distance:", max_distance)
+    min_distance = min_distance_search(sorted_devices[-1])
+    print("min_distance:", min_distance)
 
     result = [system_end_time]
     result.append(mec_num)
@@ -251,7 +255,11 @@ def continue_priority_simulation(system_end_time, MEC_resource, device_num, cont
     result.append(minimum)
     result.append(average_hop)
     result.append(reboot_rate)
+    result.append(max_distance)
+    result.append(min_distance)
 
     # pathを動的に変えることで毎回新しいファイルを作成することができる
     write_csv(path_w, result)
     print("finish")
+
+    return average_hop, reboot_rate

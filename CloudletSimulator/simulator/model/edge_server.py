@@ -56,7 +56,7 @@ class MEC_server:
         self._mode = "add"
         self._cnt = 0
         self._resource_per_second =[self._resource] * system_end_time
-        self._congestion_map = [None] * system_end_time
+        self._congestion_map = [0] * system_end_time
         self._allocation_count = [0] * system_end_time
         self._reboot_count = [0] * system_end_time
         self._device_distance = 0
@@ -694,12 +694,3 @@ def monitoring_resource(mecs:MEC_servers, MEC_resource, used_resource,time):
     for m in range(mec_num):
         if (MEC_resource - (mecs[m]._having_devices[time] * used_resource)) != mecs[m]._resource_per_second[time]:
             sys.exit()
-"""
-def hop_calc(mecs:MEC_servers, devices:Devices, time):
-    device_num = len(devices)
-    mec_num = len(mecs)
-    aggregation_map = [0 * ]* device_num
-    for d in range(device_num):
-        for t in range(t):
-            devices[d]._allocation_plan[t]._aggregation_staion
-"""

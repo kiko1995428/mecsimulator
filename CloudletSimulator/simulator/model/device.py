@@ -64,6 +64,10 @@ class Device:
         self._first_flag = True
         self._aggregation_name = None
         self._allocation_plan = None
+        self._three_count = 0
+        self._five_count = 0
+        self._min_distance = 10000000
+        self._max_distance = 0
 
     @property
     def name(self) -> str:
@@ -202,36 +206,6 @@ class Device:
     def set_congestion_status(self, system_time):
         self._congestion_status = [0] * system_time
 
-    """
-    @property
-    def use_resource(self) -> int:
-        return self._resource
-
-        res = 0
-        
-        for app in self._apps:
-            res += app.use_resource
-        return res
-        
-    @resouce.setter
-    def use_resource(self, value: int) -> None:
-        
-        利用非推奨
-        :param value: 
-        :return: 
-        
-        self._use_resource = value
-
-        if self.use_resource == value:
-            pass
-        elif self.use_resource < value:
-            padding_app = Application(name="padding", use_resource=value - self.use_resource)
-            self.append_app(padding_app)
-        else:
-            app = Application(name="padding", use_resource=value)
-            self.apps = [app]
-        """
-
     def append_plan(self, value:Point3D) -> None:
         self._plan.append(value)
     def append_mec(self, value: Mec_name) -> None:
@@ -307,6 +281,32 @@ def create_devices(p_min: Point, p_max: Point, t_max: int, npt: int, move: int):
             d.plan = create_route(start, goal)
             ds.append(d)
     return ds
+
+def max_distance_search(devices: Devices):
+    device_num = len(devices)
+    maximum = 0
+    for d in range(device_num):
+        if devices[d]._max_distance is not None:
+            if maximum < devices[d]._max_distance:
+                maximum = devices[d]._max_distance
+    return maximum
+
+def min_distance_search(devices: Devices):
+    """
+    デバイス群から最小ホップ数（最小割り当て距離）を計算するメソッド
+    :param devices: ある時刻tのデバイス群
+    :return maximum: 最小ホップ数, devices[].name: そのホップ数を持つデバイスの名前
+    """
+    device_num = len(devices)
+    minimum = 10000000
+    for d in range(device_num):
+        if devices[d]._min_distance is not None:
+            if minimum > devices[d]._min_distance:
+                minimum = devices[d]._min_distance
+            #index = d
+    return minimum
+
+
 
 def max_hop_search(devices: Devices):
     """

@@ -33,8 +33,15 @@ def make_congestion_binary(system_end_time, device_num, MEC_resource, search_dis
     devices = pickle.load(d)
     print("デバイスのMAX数", len(devices))
     devices = devices[0:device_num]
-    #for i in range(2):
-        #devices.extend(devices)
+    """
+    for i in range(3):
+        devices2 = devices
+        num = len(devices2)
+        for d in range(num):
+            devices2[d].name = num + d
+        devices.extend(devices2)
+    """
+
     num = len(devices)
     for i in range(num):
         devices[i].startup_time = float(devices[i].plan[0].time) # 各デバイスの起動時間を設定する

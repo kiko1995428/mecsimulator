@@ -33,6 +33,15 @@ def make_congestion_binary(system_end_time, device_num, MEC_resource, search_dis
     devices = pickle.load(d)
     print("デバイスのMAX数", len(devices))
     devices = devices[0:device_num]
+    """
+    for i in range(3):
+        devices2 = devices
+        num = len(devices2)
+        for d in range(num):
+            devices2[d].name = num + d
+        devices.extend(devices2)
+    """
+
     #for i in range(2):
         #devices.extend(devices)
     num = len(devices)
@@ -42,6 +51,7 @@ def make_congestion_binary(system_end_time, device_num, MEC_resource, search_dis
         devices[i].set_MEC_distance(len(df))
         devices[i]._first_flag = True
         devices[i]._allocation_plan = [None] * system_end_time
+        devices[i].use_resource = random.randint(1, 5)
 
     # MECインスタンスをCSVを元に生成
     data_length = len(df)

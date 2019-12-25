@@ -1,12 +1,13 @@
 
 from CloudletSimulator.simulator.model.edge_server import MEC_server, check_between_time, check_plan_index, check_allocation, copy_to_mec, application_reboot_rate
-from CloudletSimulator.simulator.model.device import max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc
+from CloudletSimulator.simulator.model.device import max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc, max_distance_search, min_distance_search
 from CloudletSimulator.simulator.allocation.new_congestion import traffic_congestion, devices_congestion_sort
 from CloudletSimulator.simulator.allocation.new_continue import continue_search
 from CloudletSimulator.simulator.convenient_function.write_csv import write_csv
 from CloudletSimulator.simulator.allocation.new_nearest import nearest_search, nearest_search2
 from CloudletSimulator.simulator.model.aggregation_station import set_aggregation_station
 from CloudletSimulator.simulator.allocation.move_plan_priority import search_mec_index
+from CloudletSimulator.simulator.allocation.reverse_resource import reverse_resource_sort
 import pandas as pd
 import pickle
 import sys
@@ -178,6 +179,10 @@ def continue_nearest_simulation(system_end_time, MEC_resource, device_num, conti
     print("average_hop: ", average_hop)
     reboot_rate = application_reboot_rate(mec, system_end_time)
     print("AP reboot rate:", reboot_rate)
+    max_distance = max_distance_search(sorted_devices[-1])
+    print("max_distance:", max_distance)
+    min_distance = min_distance_search(sorted_devices[-1])
+    print("min_distance:", min_distance)
 
     result = [system_end_time]
     result.append(mec_num)
@@ -186,7 +191,11 @@ def continue_nearest_simulation(system_end_time, MEC_resource, device_num, conti
     result.append(minimum)
     result.append(average_hop)
     result.append(reboot_rate)
+    result.append(max_distance)
+    result.append(min_distance)
 
     # pathを動的に変えることで毎回新しいファイルを作成することができる
     write_csv(path_w, result)
     print("finish")
+
+    return average_hop, reboot_rate

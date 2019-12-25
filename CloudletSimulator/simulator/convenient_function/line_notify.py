@@ -2,6 +2,10 @@ import requests
 import sys
 
 def LINE_notify(message):
+    """
+    あるメッセージをLINEで通知するメソッド
+    :param message: message内容
+    """
     url = "https://notify-api.line.me/api/notify"
     # LINE notifyのHPで自分用トークンを発行する必要あり
     token = 'JOUqsdscpOx1jTdEYNlUMuWXhAVrq4IX3X15PggjIXP'
