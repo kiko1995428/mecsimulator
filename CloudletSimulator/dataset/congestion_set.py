@@ -13,7 +13,7 @@ def make_congestion_binary(system_end_time, device_num, MEC_resource, search_dis
     #system_end_time = 4736
     #system_end_time = 100
     # CSV読み込み
-    df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
+    df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city2.csv",
                      dtype={'lon': 'float', 'lat': 'float'})
     # 基地局の種類を設定
     server_type = "LTE"
@@ -29,7 +29,7 @@ def make_congestion_binary(system_end_time, device_num, MEC_resource, search_dis
     # テスト用デバイスデータ
     device_flag = False
     # バイナリデータを読み込み
-    d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
+    d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.clone_binaryfile', 'rb')
     devices = pickle.load(d)
     print("デバイスのMAX数", len(devices))
     devices = devices[0:device_num]

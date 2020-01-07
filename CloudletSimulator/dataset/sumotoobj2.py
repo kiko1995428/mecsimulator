@@ -8,7 +8,7 @@ import pickle
 import random
 
 #deviceの作成
-with open('Kuruma.csv', newline='') as csvfile:
+with open('Kuruma3.csv', newline='') as csvfile:
 	#csvの読み込み
 	reader = csv.DictReader(csvfile)
 	devices = [] # type:List[Device]
@@ -41,9 +41,10 @@ with open('Kuruma.csv', newline='') as csvfile:
 			#d.use_resource = 1
 			d._system_time = 500
 			d.set_congestion_status(500)
-			d.use_resource = random.randint(1, 5)
+			d.use_resource = random.randint(1, 20)
 			devices.append(d)
 			num += 1
-	f = open('device.binaryfile_500', 'wb')
+	device_num = len(devices)
+	f = open('device.congestion_binaryfile_1to20', 'wb')
 	pickle.dump(devices, f)
 	f.close

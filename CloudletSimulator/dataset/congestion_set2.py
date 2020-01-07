@@ -4,6 +4,7 @@
 from CloudletSimulator.simulator.model.edge_server import MEC_server
 from CloudletSimulator.simulator.model.device import Device
 from CloudletSimulator.simulator.allocation.new_congestion import traffic_congestion
+from CloudletSimulator.dataset.delete_MEC import delete_mec
 import pandas as pd
 import pickle
 import random
@@ -13,7 +14,7 @@ def make_congestion_binary(system_end_time, device_num, MEC_resource, search_dis
     #system_end_time = 4736
     #system_end_time = 100
     # CSV読み込み
-    df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
+    df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city2.csv",
                      dtype={'lon': 'float', 'lat': 'float'})
     # 基地局の種類を設定
     server_type = "LTE"
@@ -29,7 +30,7 @@ def make_congestion_binary(system_end_time, device_num, MEC_resource, search_dis
     # テスト用デバイスデータ
     device_flag = False
     # バイナリデータを読み込み
-    d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile_500', 'rb')
+    d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.congestion_binaryfile_500', 'rb')
     devices = pickle.load(d)
     print("デバイスのMAX数", len(devices))
     devices = devices[0:device_num]
@@ -51,7 +52,7 @@ def make_congestion_binary(system_end_time, device_num, MEC_resource, search_dis
         devices[i].set_MEC_distance(len(df))
         devices[i]._first_flag = True
         devices[i]._allocation_plan = [None] * system_end_time
-        devices[i].use_resource = random.randint(1, 5)
+        #devices[i].use_resource = random.randint(1, 5)
 
     # MECインスタンスをCSVを元に生成
     data_length = len(df)
@@ -59,6 +60,7 @@ def make_congestion_binary(system_end_time, device_num, MEC_resource, search_dis
     for index, series in df.iterrows():
         mec[index] = MEC_server(MEC_resource, index + 1, server_type, series["lon"], series["lat"],
                                 cover_range, system_end_time)
+    #mec = delete_mec(mec)
     # 時間をセット
     devices[i].startup_time = float(devices[i].plan[0].time) # 各デバイスの起動時間を設定する
 
