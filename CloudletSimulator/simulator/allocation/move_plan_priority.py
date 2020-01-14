@@ -30,7 +30,7 @@ def move_plan_priority_calc(mecs:MEC_servers, device:Device, plan_index, time, f
     for m in range(mec_num):
         print(device.plan_index, f_time, len(device.plan))
         disntace = distance_calc(float(device.plan[plan_index + int(f_time)].y), float(device.plan[plan_index + int(f_time)].x), mecs[m].lat, mecs[m].lon)
-       # 継続割り当ての距離以内にいるサーバを調べる
+       # 探索距離内（継続割り当て距離内）にあるサーバを調べる
         if disntace <= continue_distance:
            #found_judge = True
            if mec is None:
@@ -220,6 +220,7 @@ def mode_adjustment(mecs:MEC_servers, mec_index, device: Device, time):
         previous_mec_name = device.mec_name
 
         print("ADD")
+        hop_calc(device, mecs, mecs[mec_index], previous_mec_name, time)
         print("減らす前のID", mecs[mec_index].name)
         print("減らす前のリソース", mecs[mec_index].resource)
         print(mec_index, previous_index)
@@ -234,7 +235,6 @@ def mode_adjustment(mecs:MEC_servers, mec_index, device: Device, time):
         current_id = mecs[mec_index].name
 
         # 新規追加
-        hop_calc(device, mecs, mecs[mec_index], previous_mec_name, time)
         device._aggregation_name = mecs[mec_index].aggregation_station
         return True, current_id
 

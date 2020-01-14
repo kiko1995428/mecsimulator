@@ -23,6 +23,8 @@ def hop_calc(device:Device, mecs:MEC_servers, mec: MEC_server, previous_mec_name
     if device._first_flag == True:
         device._hop = [1]
         device._first_flag = False
+    #elif mec.name == device.mec_name:
+       #keep_hop(device)
     # 切替成功
     else:
         mec.add_reboot_count(time)
@@ -32,8 +34,15 @@ def hop_calc(device:Device, mecs:MEC_servers, mec: MEC_server, previous_mec_name
             # ---
             previous_mec = search_mec(mecs, previous_mec_name)
             distance = distance_calc(mec.lat, mec.lon, previous_mec.lat, previous_mec.lon)
+            # 割り当て距離を追加
+            if device._distance is None:
+                device._distance = [distance]
+            else:
+                device._distance.append(distance)
+            # 最小割り当て距離
             if device._min_distance > distance and distance != 0:
                 device._min_distance = distance
+            # 最大割り当て距離
             if device._max_distance < distance:
                 device._max_distance = distance
         # 集約曲が違う時
@@ -42,8 +51,15 @@ def hop_calc(device:Device, mecs:MEC_servers, mec: MEC_server, previous_mec_name
             previous_mec = search_mec(mecs, device.mec_name)
             # ---
             distance = distance_calc(mec.lat, mec.lon, previous_mec.lat, previous_mec.lon)
+            # 割り当て距離を追加
+            if device._distance is None:
+                device._distance = [distance]
+            else:
+                device._distance.append(distance)
+            # 最小割り当て距離
             if device._min_distance > distance and distance != 0:
                 device._min_distance = distance
+            # 最大割り当て距離
             if device._max_distance < distance:
                 device._max_distance = distance
 
@@ -55,6 +71,7 @@ def search_mec(mecs:MEC_servers, mec_name):
 
 def keep_hop(device:Device):
     device._hop.append(1)
+
 
 def distance_calc(lat1, lon1, lat2, lon2):
     """

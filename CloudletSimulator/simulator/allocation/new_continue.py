@@ -19,7 +19,8 @@ def continue_search(device:Device, mec:MEC_servers, plan_index, cover_range, tim
             distance = distance_calc(float(device.plan[plan_index].y),
                                      float(device.plan[plan_index].x), mec[mec_index].lat, mec[mec_index].lon)
             #カバー範囲内なら
-            if distance <= cover_range and distance <= continue_distance:
+            #if distance <= cover_range and distance <= continue_distance:
+            if distance <= continue_distance:
                 print(device.plan[plan_index])
                 device.set_mode = "keep"
                 mec[mec_index].custom_resource_adjustment(device, time)

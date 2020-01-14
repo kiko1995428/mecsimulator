@@ -1,6 +1,7 @@
 from CloudletSimulator.simulator.model.edge_server import MEC_servers, check_add_device,MEC_server, check_between_time, check_plan_index
 from CloudletSimulator.simulator.model.device import Device
 from CloudletSimulator.simulator.model.hop_calc import hop_calc,keep_hop
+from CloudletSimulator.simulator.allocation.move_plan_priority import search_mec_index
 from geopy.distance import vincenty
 import math
 from math import radians, cos, sin, asin, sqrt, atan2
@@ -24,111 +25,89 @@ def nearest_search(device:Device, mec:MEC_servers, plan_index, cover_range, time
     # data = len(mec)
     data = 100
     distance = [None] * data
-    #device_lat = float(device.plan[plan_index].y)
-    #device_lon = float(device.plan[plan_index].x)
-    #device_position = (device_lat, device_lon)
     cnt = 0
 
     # 最近傍法を使うために、各MECサーバとの距離を計算
     for m in range(data):
-        #position = (mec[m].lat, mec[m].lon)
         if mec[m].check_resource(device.use_resource) == True and len(device.plan) > plan_index:
             distance[m] = distance_calc(float(device.plan[plan_index].y),
                                         float(device.plan[plan_index].x), mec[m].lat, mec[m].lon)
-            #distance[m] = vincenty(position, device_position).miles * 1609.34
         else:
             distance[m] = 100000000000
             cnt = cnt + 1
-        #print(distance)
     if cnt < data:
         # 最も距離が近いMECサーバを選び、その配列のインデックスを取得する
         ans_id = distance.index(min(distance))
+        # 最も距離が近いMECサーバを選び、その配列のインデックスを取得する
+        print(device.mec_name)
+        ans_id = mec[ans_id].name
+        print(mec[ans_id].name, device.mec_name, device.lost_flag)
+        #継続割り当ての時
+        if mec[ans_id].name == device.mec_name and device.lost_flag == False:
+            print(device.plan[plan_index])
+            device.set_mode = "keep"
+            mec[ans_id].custom_resource_adjustment(device, time)
+            print("KEEP", plan_index)
+            device.mec_name = mec[ans_id].name
+            device._allocation_plan[time] = mec[ans_id]
 
-        #if min(distance) <= cover_range:
-        if True:
-            # 最も距離が近いMECサーバを選び、その配列のインデックスを取得する
-            # ans_id = distance.index(min(distance))
-            print(device.mec_name)
-            ans_id = mec[ans_id].name
-            print(mec[ans_id].name, device.mec_name, device.lost_flag)
-            #継続割り当ての時
-            if mec[ans_id].name == device.mec_name and device.lost_flag == False:
-                print(device.plan[plan_index])
-                device.set_mode = "keep"
-                mec[ans_id].custom_resource_adjustment(device, time)
-                print("KEEP", plan_index)
-                device.mec_name = mec[ans_id].name
-                device._allocation_plan[time] = mec[ans_id]
+            mec[ans_id].add_having_device(time)
+            mec[ans_id].save_resource(time)
+            device.switch_lost_flag = False
 
-                mec[ans_id].add_having_device(time)
-                mec[ans_id].save_resource(time)
-                device.switch_lost_flag = False
+            # 追加項目
+            keep_hop(device)
+            #hop_calc(device, mec, ans_id, time)
+            print(mec[ans_id].aggregation_station)
+            device._aggregation_name = mec[ans_id].aggregation_station
+            mec[ans_id].add_allocation_count(time)
+            mec[ans_id]._keep_count = mec[ans_id]._keep_count + 1
 
-                # 追加項目
-                keep_hop(device)
-                #hop_calc(device, mec, ans_id, time)
-                print(mec[ans_id].aggregation_station)
-                device._aggregation_name = mec[ans_id].aggregation_station
-                mec[ans_id].add_allocation_count(time)
-                mec[ans_id]._keep_count = mec[ans_id]._keep_count + 1
+        # 移動する時(新規割り当て以外)
+        elif mec[ans_id].name != device.mec_name and device._lost_flag == False and mec[ans_id].name != None:
+            # リソースを増やす
+            device.set_mode = "decrease"
+            mec[device.mec_name - 1].custom_resource_adjustment(device, time)
+            device.add_hop_count()
+            #hop_calc(device, mec[device.mec_name - 1])
+            mec[device.mec_name - 1].save_resource(time)
+            print("DECREASE")
+            print("切替", device._aggregation_name, mec[ans_id])
+            previous_mec_name = device.mec_name
 
-            # 移動する時(新規割り当て以外)
-            elif mec[ans_id].name != device.mec_name and device._lost_flag == False and mec[ans_id].name != None:
-                # リソースを増やす
-                device.set_mode = "decrease"
-                mec[device.mec_name - 1].custom_resource_adjustment(device, time)
-                device.add_hop_count()
-                #hop_calc(device, mec[device.mec_name - 1])
-                mec[device.mec_name - 1].save_resource(time)
-                print("DECREASE")
-                print("切替", device._aggregation_name, mec[ans_id])
+            # リソースを減らす
+            device.set_mode = "add"
+            mec[ans_id].custom_resource_adjustment(device, time)
+            device.mec_name = mec[ans_id].name
+            device._allocation_plan[time] = mec[ans_id]
 
-                # リソースを減らす
-                device.set_mode = "add"
-                mec[ans_id].custom_resource_adjustment(device, time)
-                device.mec_name = mec[ans_id].name
-                device._allocation_plan[time] = mec[ans_id]
+            # 新規追加
+            hop_calc(device, mec, mec[ans_id], previous_mec_name, time)
+            device._aggregation_name = mec[ans_id].aggregation_station
 
-                # 新規追加
-                hop_calc(device, mec[ans_id], time)
-                device._aggregation_name = mec[ans_id].aggregation_station
-
-                mec[ans_id].add_having_device(time)
-                mec[ans_id].save_resource(time)
-                device.switch_lost_flag = False
-            else:
-                # リソースを減らす
-                device.set_mode = "add"
-                mec[ans_id].custom_resource_adjustment(device, time)
-
-                device.mec_name = mec[ans_id].name
-                device._allocation_plan[time] = mec[ans_id]
-
-                # 新規追加
-                #hop_calc(device, mec, ans_id, time)
-                hop_calc(device, mec[ans_id], time)
-                device._aggregation_name = mec[ans_id].aggregation_station
-
-                mec[ans_id].add_having_device(time)
-                mec[ans_id].save_resource(time)
-                #if device._lost_flag == True and device.startup_time != time:
-                    #mec[ans_id].add_reboot_count(time)
-                device.switch_lost_flag = False
-            return True, ans_id
+            mec[ans_id].add_having_device(time)
+            mec[ans_id].save_resource(time)
+            device.switch_lost_flag = False
         else:
-            # lostした時リソースを増やす
-            #if  mec[ans_id].name != None and device._lost_flag == False and check_add_device(device, time) == False:
-            if mec[ans_id].name != None and device._lost_flag == False:
-                device.set_mode = "decrease"
-                print("DECREASE")
-                mec[device.mec_name - 1].custom_resource_adjustment(device, time)
-                mec[device.mec_name - 1].save_resource(time)
-                #device.add_hop_count()
-                device.set_mode = "add"
-            device.switch_lost_flag = True
-            device._lost_flag = True
-            device.mec_name = None
-            return False, ans_id
+            # リソースを減らす
+            device.set_mode = "add"
+            mec[ans_id].custom_resource_adjustment(device, time)
+
+            device.mec_name = mec[ans_id].name
+            device._allocation_plan[time] = mec[ans_id]
+
+            # 新規追加
+            #hop_calc(device, mec, ans_id, time)
+            #hop_calc(device, mec, mec[ans_id], time)
+            keep_hop(device)
+            device._aggregation_name = mec[ans_id].aggregation_station
+
+            mec[ans_id].add_having_device(time)
+            mec[ans_id].save_resource(time)
+            #if device._lost_flag == True and device.startup_time != time:
+                #mec[ans_id].add_reboot_count(time)
+            device.switch_lost_flag = False
+        return True, ans_id
     else:
         # lostした時リソースを増やす
         #if device._lost_flag == False and check_add_device(device, time) == False:
@@ -178,88 +157,88 @@ def nearest_search2(device:Device, mec:MEC_servers, plan_index, cover_range, tim
 
     #ans_id = distance.index(min(distance))
     sorted_distance = sorted(mec_distance, key=lambda m:m.value)
-    ans_id = sorted_distance[0].index
-    """
-    if sorted_distance[0].value < 1000000:
-        ans_id = sorted_distance[0].index
-    else:
-        for m in range(data):
-            if mec[m].resource > 0:
-                print(mec[m].name, mec[m].resource)
-        print(device.name)
-        print(1)
-    """
-    # 最も距離が近いMECサーバを選び、その配列のインデックスを取得する
-    # ans_id = distance.index(min(distance))
-    #print(device.mec_name)
-    #ans_id = mec[ans_id].name
-    print(mec[ans_id].name, device.mec_name, device.lost_flag)
-    if mec[ans_id].resource > 0:
-        #継続割り当ての時
-        if mec[ans_id].name == device.mec_name:
-            device.set_mode = "keep"
-            mec[ans_id].custom_resource_adjustment(device, time)
-            print("KEEP", plan_index)
-            device.mec_name = mec[ans_id].name
+    index_count = 0
+    while(True):
+        finish_len = len(sorted_distance)
+        if index_count == finish_len:
+            print("MECのリソース量が少な過ぎます")
+            sys.exit()
+            return False, mec[0].name
+        # 最も距離が近い割り当て可能なMECサーバを選び、その配列のインデックスを取得する
+        ans_id = sorted_distance[index_count].index
+        if mec[ans_id].resource > 0:
+            #継続割り当ての時
+            if mec[ans_id].name == device.mec_name:
+                device.set_mode = "keep"
+                mec[ans_id].custom_resource_adjustment(device, time)
+                print("KEEP", plan_index)
+                device.mec_name = mec[ans_id].name
 
-            mec[ans_id].add_having_device(time)
-            mec[ans_id].save_resource(time)
-            device.switch_lost_flag = False
+                mec[ans_id].add_having_device(time)
+                mec[ans_id].save_resource(time)
+                device.switch_lost_flag = False
 
-            # 追加項目
-            keep_hop(device)
-            print(mec[ans_id].aggregation_station)
-            device._aggregation_name = mec[ans_id].aggregation_station
-            mec[ans_id].add_allocation_count(time)
-            mec[ans_id]._keep_count = mec[ans_id]._keep_count + 1
+                # 追加項目
+                keep_hop(device)
+                print(mec[ans_id].aggregation_station)
+                device._aggregation_name = mec[ans_id].aggregation_station
+                mec[ans_id].add_allocation_count(time)
+                mec[ans_id]._keep_count = mec[ans_id]._keep_count + 1
 
-        # 移動する時(新規割り当て以外)
-        elif mec[ans_id].name != device.mec_name and mec[ans_id].name != None and device.mec_name != []:
-            #mec_index = mec_index_search(device, mec)
-            # リソースを増やす
-            device.set_mode = "decrease"
-            print("デバイスの前のMEC:", device.mec_name, "前のMEC", mec[device.mec_name - 1].name)
-            # 前に割り振ったMECのリソースを回復
-            mec[device.mec_name - 1].custom_resource_adjustment(device, time)
-            device.add_hop_count()
-            #hop_calc(device, mec[device.mec_name - 1])
-            mec[device.mec_name - 1].save_resource(time)
-            print("DECREASE")
-            print("切替", device._aggregation_name, mec[ans_id])
+            # 移動する時(新規割り当て以外)
+            elif mec[ans_id].name != device.mec_name and mec[ans_id].name != None and device.mec_name != []:
+                print("********")
+                print(mec[ans_id].name, device.mec_name)
 
-            # リソースを減らす
-            device.set_mode = "add"
-            mec[ans_id].custom_resource_adjustment(device, time)
-            device.add_hop_count()
-            device.mec_name = mec[ans_id].name
+                previous_index = search_mec_index(mec, device.mec_name)
+                #mec_index = mec_index_search(device, mec)
+                # リソースを増やす
+                device.set_mode = "decrease"
 
-            # 新規追加
-            hop_calc(device, mec[ans_id], time)
-            device._aggregation_name = mec[ans_id].aggregation_station
+                print("デバイスの前のMEC:", device.mec_name, "前のMEC", mec[previous_index].name)
+                # 前に割り振ったMECのリソースを回復
+                mec[previous_index].custom_resource_adjustment(device, time)
+                device.add_hop_count()
+                #hop_calc(device, mec[device.mec_name - 1])
+                mec[previous_index].save_resource(time)
+                print("DECREASE")
+                print("切替", device._aggregation_name, mec[ans_id])
+                previous_mec_name = device.mec_name
 
-            mec[ans_id].add_having_device(time)
-            mec[ans_id].save_resource(time)
-            device.switch_lost_flag = False
-        else:
-            # リソースを減らす
-            device.set_mode = "add"
-            mec[ans_id].custom_resource_adjustment(device, time)
-            device.add_hop_count()
+                # リソースを減らす
+                device.set_mode = "add"
+                hop_calc(device, mec, mec[ans_id], previous_mec_name, time)
+                mec[ans_id].custom_resource_adjustment(device, time)
+                device.add_hop_count()
+                # 新規追加
+                device._aggregation_name = mec[ans_id].aggregation_station
+                device.mec_name = mec[ans_id].name
 
-            device.mec_name = mec[ans_id].name
+                mec[ans_id].add_having_device(time)
+                mec[ans_id].save_resource(time)
+                device.switch_lost_flag = False
+            else:
+                # リソースを減らす
+                device.set_mode = "add"
+                mec[ans_id].custom_resource_adjustment(device, time)
+                device.add_hop_count()
+                device.mec_name = mec[ans_id].name
+                # 新規追加
+                previous_mec_name = device.mec_name
+                hop_calc(device, mec, mec[ans_id], previous_mec_name, time)
+                #keep_hop(device)
+                device._aggregation_name = mec[ans_id].aggregation_station
 
-            # 新規追加
-            hop_calc(device, mec[ans_id], time)
-            device._aggregation_name = mec[ans_id].aggregation_station
+                mec[ans_id].add_having_device(time)
+                mec[ans_id].save_resource(time)
 
-            mec[ans_id].add_having_device(time)
-            mec[ans_id].save_resource(time)
+                device.switch_lost_flag = False
+            print("MEC_RESOURCE", mec[ans_id].resource)
 
-            device.switch_lost_flag = False
-        print("MEC_RESOURCE", mec[ans_id].resource)
+            return True, mec[ans_id].name
+        index_count = index_count + 1
+    #print(device.name)
 
-        return True, mec[ans_id].name
-    print(device.name)
 # ユーグリット距離
 def distance_calc(lat1, lon1, lat2, lon2):
     """

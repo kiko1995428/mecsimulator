@@ -1,5 +1,5 @@
 from CloudletSimulator.simulator.model.edge_server import MEC_servers, check_add_device,MEC_server
-from CloudletSimulator.simulator.model.device import Device,Devices
+from CloudletSimulator.simulator.model.device import Device, Devices, device_index_search
 import math
 from math import radians, cos, sin, asin, sqrt, atan2
 from typing import List
@@ -21,10 +21,13 @@ def traffic_congestion(mecs:MEC_servers, devices: Devices, system_time, seach_di
         print("time:", t, ", ", t/system_time*100, "%")
         # 各MECごとの混雑度を計算
         for m in range(data_length):
-            mecs[m], devices = traffic_congestion_calc(mecs[m], devices, t, seach_distance)
+            mecs[m], devices = traffic_congestion_calc(mecs, mecs[m], devices, t, seach_distance)
+    num = len(devices)
+    for d in range(num):
+        devices[d].mec_name = []
     #devices_congestion_sort(devices, system_time)
 
-def traffic_congestion_calc(mec:MEC_server, devices: Devices, time , search_distance):
+def traffic_congestion_calc(mecs:MEC_servers, mec:MEC_server, devices: Devices, time , search_distance):
     """
     あるMECのカバー範囲内の要求リソース量の総和を求める計算（混雑度）
     :param mec: あるMECサーバ
@@ -62,12 +65,40 @@ def traffic_congestion_calc(mec:MEC_server, devices: Devices, time , search_dist
     if save[0] != None:
         for save_index in save:
             # 混雑度が多ければ、値を更新する
-            if devices[save_index]._congestion_status[time] == 0 or devices[save_index]._congestion_status[time] > sum:
-            #if devices[save_index]._congestion_status[time] < sum :
-            #if devices[save_index]._congestion_status[time] == 0:
+            if devices[save_index]._congestion_status[time] == 0:
                 devices[save_index]._congestion_status[time] = sum
-    #print(save, sum)
+                # 先に計算したMECと比較するために保存
+                devices[save_index].mec_name = mec.name
+            elif devices[save_index]._congestion_status[time] < sum:
+                devices[save_index]._congestion_status[time] = sum
+                devices[save_index].mec_name = mec.name
+            else:
+            # 値が被る時
+                startup = devices[save_index].startup_time
+                index = int(time) - int(startup)
+                if index < (shutdown - startup):
+                    previous_mec = search_mec(mecs, devices[save_index].mec_name)
+                    previous_distance = distance_calc(float(devices[save_index].plan[index].y),
+                                                      float(devices[save_index].plan[index].x),
+                                                      previous_mec.lat, previous_mec.lon)
+                    current_distance = distance_calc(float(devices[save_index].plan[index].y),
+                                                      float(devices[save_index].plan[index].x), mec.lat, mec.lon)
+                    if current_distance < previous_distance:
+                        devices[save_index]._congestion_status[time] = sum
+                        devices[save_index].mec_name = mec.name
     return mec, devices
+"""
+def congestion_map_calc():
+    min_lat = 34.632282
+    max_lat = 34.652382
+    min_lon = 133.87895
+    max_lon = 133.92678
+    lat_value = (max_lat - min_lat) / 50
+    lon_value = (max_lon - min_lon) / 50
+    for n in range(250):
+        # 格子状の範囲で地図を区切り、混雑度を計算できるようにする。
+    print()
+"""
 
 # デバイスを混雑度順に降順ソートする
 def devices_congestion_sort(devices:Device, system_time):
@@ -104,3 +135,9 @@ def distance_calc(lat1, lon1, lat2, lon2):
     val = sin(dLat / 2) * sin(dLat / 2) + sin(dLot / 2) * sin(dLot / 2) * cos(lat1) * cos(lat2)
     ang = 2 * atan2(sqrt(val), sqrt(1 - val))
     return radius * ang  # meter
+
+def search_mec(mecs:MEC_servers, mec_name):
+    mec_num = len(mecs)
+    for m in range(mec_num):
+        if mecs[m].name == mec_name:
+            return mecs[m]

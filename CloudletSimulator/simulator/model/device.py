@@ -68,6 +68,8 @@ class Device:
         self._five_count = 0
         self._min_distance = 10000000
         self._max_distance = 0
+        self._distance = None
+        self._added_distance = None
 
     @property
     def name(self) -> str:
@@ -306,7 +308,25 @@ def min_distance_search(devices: Devices):
             #index = d
     return minimum
 
-
+def average_distance_calc(devices: Devices):
+    """
+    デバイス群から平均割り当て距離を計算するメソッド
+    :param devices: ある時刻tのデバイス群
+    :return average: 平均ホップ数
+    """
+    device_num = len(devices)
+    cnt = 0
+    sum = 0
+    average = 0
+    for d in range(device_num):
+        if devices[d]._distance is not None:
+            for distance in devices[d]._distance:
+                if distance > 0:
+                    sum = sum + distance
+                    cnt = cnt + 1
+    if cnt != 0:
+        average = sum / cnt
+    return average
 
 def max_hop_search(devices: Devices):
     """

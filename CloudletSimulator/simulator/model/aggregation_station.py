@@ -7,9 +7,12 @@ def set_aggregation_station(mecs:MEC_servers):
     """
     mec_num = len(mecs)
     #central_lat = 34.663377
-    central_lat = 34.664405
+    # 正式
+    #central_lat = 34.664405 # 正式
+    central_lat = 34.642504
     #central_lon = 133.917336
-    central_lon = 133.91157
+    #central_lon = 133.91157 # 正式
+    central_lon = 133.90286
     for m in range(mec_num):
         # 左下
         if mecs[m].lat <= central_lat and mecs[m].lon <= central_lon:

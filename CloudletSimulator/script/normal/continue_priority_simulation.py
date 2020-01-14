@@ -2,7 +2,7 @@
 # まず、make_binanary.pyでバイナリーファイルを作成し、このプログラムを実行する
 
 from CloudletSimulator.simulator.model.edge_server import MEC_server, MEC_servers, check_between_time, check_plan_index, check_allocation, copy_to_mec, application_reboot_rate
-from CloudletSimulator.simulator.model.device import max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc, max_distance_search, min_distance_search
+from CloudletSimulator.simulator.model.device import max_hop_search, min_hop_search, average_hop_calc,device_index_search, device_resource_calc, max_distance_search, min_distance_search, average_distance_calc
 from CloudletSimulator.simulator.allocation.new_congestion import traffic_congestion, devices_congestion_sort
 from CloudletSimulator.simulator.allocation.new_continue import continue_search
 from CloudletSimulator.simulator.convenient_function.write_csv import write_csv
@@ -11,11 +11,12 @@ from CloudletSimulator.simulator.allocation.move_plan_priority import move_plan_
 from CloudletSimulator.simulator.model.aggregation_station import set_aggregation_station
 import pandas as pd
 import pickle
+import random
 
 
 def continue_priority_simulation(system_end_time, MEC_resource, device_num, continue_distance, f_time, device_allocation_method, path_w):
 
-    df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city.csv",
+    df = pd.read_csv("/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/base_station/kddi_okayama_city2.csv",
                      dtype={'lon': 'float', 'lat': 'float'})
     server_type = "LTE"
     cover_range = 500
@@ -32,7 +33,7 @@ def continue_priority_simulation(system_end_time, MEC_resource, device_num, cont
 
     # 到着順
     if device_allocation_method == 0:
-        d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
+        d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.clone_binaryfile', 'rb')
         devices = pickle.load(d)
         devices = devices[0:device_num]
         num = len(devices)
@@ -42,11 +43,15 @@ def continue_priority_simulation(system_end_time, MEC_resource, device_num, cont
             devices[i].set_MEC_distance(len(df))
             devices[i]._first_flag = True
             devices[i]._allocation_plan = [None] * system_end_time
-
+        # 順序をシャッフル
+        random.shuffle(devices)
         sorted_devices = [devices] * system_end_time
+        for t in range(system_end_time):
+            random.shuffle(devices)
+            sorted_devices[t] = devices
     # リソース順
     elif device_allocation_method == 1:
-        d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.binaryfile', 'rb')
+        d = open('/Users/sugimurayuuki/Desktop/mecsimulator/CloudletSimulator/dataset/device.congestion_binaryfile', 'rb')
         devices = pickle.load(d)
         devices = devices[0:device_num]
         num = len(devices)
@@ -91,7 +96,6 @@ def continue_priority_simulation(system_end_time, MEC_resource, device_num, cont
                 continue_flag, allocation_MEC_name = continue_search(sorted_devices[t][i], mec,
                                                                      sorted_devices[t][i].plan_index, cover_range, t,
                                                                      continue_distance)
-
                 if continue_flag == True:
                     keep_count = keep_count + 1
                 if continue_flag == False:
@@ -194,8 +198,8 @@ def continue_priority_simulation(system_end_time, MEC_resource, device_num, cont
                     sorted_devices[t][i].set_mode = "add"
                     sorted_devices[t][i]._lost_flag = True
 
-    # ある時刻tのMECに一時的に保存していた割り当てたデバイスをコピーする。
-    copy_to_mec(mec, save_devices, t)
+        # ある時刻tのMECに一時的に保存していた割り当てたデバイスをコピーする。
+        copy_to_mec(mec, save_devices, t)
 
     # MECを昇順に直す
     mec = sorted(mec, key=lambda m: m.name, reverse=False)
@@ -203,15 +207,16 @@ def continue_priority_simulation(system_end_time, MEC_resource, device_num, cont
     sum = 0
     mec_sum = 0
     having_device_resource_sum = 0
+    """
     for t in range(system_end_time):
         # print("time:", t)
         for m in range(mec_num):
-            if t == 95:
+            #if t == 95:
                 # if mec[m]._having_devices_count[t] != (MEC_resource- mec[m]._resource_per_second[t]):
                 # if mec[m].name == 11:
-                print("MEC_ID:", mec[m].name, ", having devices:", mec[m]._having_devices[t],
-                      mec[m]._having_devices_count[t],
-                      ", mec_resouce:", mec[m]._resource_per_second[t], ", current time:", t, mec[m]._test)
+                #print("MEC_ID:", mec[m].name, ", having devices:", mec[m]._having_devices[t],
+                      #mec[m]._having_devices_count[t],
+                      #", mec_resouce:", mec[m]._resource_per_second[t], ", current time:", t, mec[m]._test)
                 # sum = sum + mec[m]._having_devices_count[t]
             # mec_sum = mec_sum + mec[m]._resource_per_second[t]
             # sum = sum + mec[m]._having_devices_count[t]
@@ -228,6 +233,8 @@ def continue_priority_simulation(system_end_time, MEC_resource, device_num, cont
         sum = 0
         mec_sum = 0
     # print(sum, (150*100-sum), mec_sum)
+    """
+    num = len(devices)
 
     print("system_time: ", system_end_time)
     print("MEC_num: ", mec_num)
@@ -247,9 +254,12 @@ def continue_priority_simulation(system_end_time, MEC_resource, device_num, cont
     print("max_distance:", max_distance)
     min_distance = min_distance_search(sorted_devices[-1])
     print("min_distance:", min_distance)
+    average_distance = average_distance_calc(sorted_devices[-1])
+    print("average_distance: ", average_distance)
 
     result = [system_end_time]
     result.append(mec_num)
+    result.append(MEC_resource)
     result.append(num)
     result.append(maximum)
     result.append(minimum)
@@ -257,6 +267,7 @@ def continue_priority_simulation(system_end_time, MEC_resource, device_num, cont
     result.append(reboot_rate)
     result.append(max_distance)
     result.append(min_distance)
+    result.append(average_distance)
 
     # pathを動的に変えることで毎回新しいファイルを作成することができる
     write_csv(path_w, result)
